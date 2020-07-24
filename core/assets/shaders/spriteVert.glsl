@@ -8,5 +8,5 @@ varying vec2 v_texCoords;
 void main()
 {
 	v_texCoords = a_texCoord;
-	gl_Position = u_projTrans * vec4(a_position, 1);
+	gl_Position = u_projTrans * vec4(a_position, 1.0);
 }

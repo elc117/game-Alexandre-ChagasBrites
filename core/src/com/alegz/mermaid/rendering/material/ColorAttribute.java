@@ -7,13 +7,12 @@ public class ColorAttribute extends MaterialAttribute
 {
 	public Color color;
 	
-	public ColorAttribute(String key, Color color)
+	public ColorAttribute(Color color)
 	{
-		this.key = key;
 		this.color = color;
 	}
 	
-	public void set(ShaderProgram shader) 
+	public void set(String key, ShaderProgram shader) 
 	{
 		shader.setUniformf(key, color);
 	}

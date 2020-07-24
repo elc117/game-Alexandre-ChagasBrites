@@ -62,7 +62,6 @@ public class Assets
 		loadShader(SHADER_WATER);
 		loadShader(SHADER_BACKGROUND);
 		
-		//loadSprite(SPRITE_NULL, null, new Rect(0, 0, 1, 1));
 		sprites.put(SPRITE_NULL, new Sprite(null, new Rect(0, 0, 1, 1)));
 		loadSprite(SPRITE_PLAYER, TEXTURE_PLAYER, new Rect(0, 0, 24, 24));
 		loadSprite(SPRITE_BACKGROUND0, TEXTURE_BACKGROUND0, new Rect(0, 0, 512, 512));

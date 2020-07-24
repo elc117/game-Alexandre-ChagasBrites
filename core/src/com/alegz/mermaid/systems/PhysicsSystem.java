@@ -1,16 +1,17 @@
 package com.alegz.mermaid.systems;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.alegz.mermaid.components.RigidbodyComponent;
 import com.alegz.mermaid.components.TransformComponent;
-import com.badlogic.ashley.core.ComponentMapper;
-import com.badlogic.ashley.core.Engine;
-import com.badlogic.ashley.core.Entity;
-import com.badlogic.ashley.core.EntitySystem;
-import com.badlogic.ashley.core.Family;
-import com.badlogic.ashley.utils.ImmutableArray;
+import com.alegz.mermaid.ecs.Engine;
+import com.alegz.mermaid.ecs.Entity;
+import com.alegz.mermaid.ecs.EntitySystem;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.World;
+import com.badlogic.gdx.utils.ObjectMap;
 
 public class PhysicsSystem extends EntitySystem
 {
@@ -19,10 +20,10 @@ public class PhysicsSystem extends EntitySystem
 	private final static float timeStep = 1.0f / 60.0f;
 	private float accumulator;
 	
-	private ImmutableArray<Entity> entities;
+	private List<Entity> entities;
 	
-	private ComponentMapper<TransformComponent> tm;
-	private ComponentMapper<RigidbodyComponent> rm;
+	private ObjectMap<Entity, TransformComponent> transformComponents;
+	private ObjectMap<Entity, RigidbodyComponent> rigidbodyComponents;
 	
 	public PhysicsSystem()
 	{
@@ -30,13 +31,13 @@ public class PhysicsSystem extends EntitySystem
 		world = new World(gravity, true);
 		accumulator = 0;
 		
-		tm = ComponentMapper.getFor(TransformComponent.class);
-		rm = ComponentMapper.getFor(RigidbodyComponent.class);
+		entities = new ArrayList<Entity>();
 	}
 	
 	public void addedToEngine(Engine engine) 
 	{
-		entities = engine.getEntitiesFor(Family.all(TransformComponent.class, RigidbodyComponent.class).get());
+		transformComponents = engine.getComponentStorage(TransformComponent.class);
+		rigidbodyComponents = engine.getComponentStorage(RigidbodyComponent.class);
 	}
 	
 	public void update(float deltaTime)
@@ -50,8 +51,8 @@ public class PhysicsSystem extends EntitySystem
         
         for (Entity entity : entities) 
         {
-            TransformComponent transform = tm.get(entity);
-            RigidbodyComponent rigidbody = rm.get(entity);
+            TransformComponent transform = transformComponents.get(entity);
+            RigidbodyComponent rigidbody = rigidbodyComponents.get(entity);
             
             Vector2 position = rigidbody.body.getPosition();
             transform.position.x = position.x;
@@ -59,6 +60,13 @@ public class PhysicsSystem extends EntitySystem
             if (!rigidbody.body.isFixedRotation())
             	transform.rotation = rigidbody.body.getAngle() * MathUtils.radDeg;
         }
+	}
+	
+	public void entityAdded(Engine engine, Entity entity)
+	{
+		if (engine.hasComponent(entity, TransformComponent.class) &&
+			engine.hasComponent(entity, RigidbodyComponent.class))
+			entities.add(entity);
 	}
 	
 	public World getWorld()

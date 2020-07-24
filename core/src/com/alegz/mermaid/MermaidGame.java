@@ -6,6 +6,8 @@ import com.alegz.mermaid.components.RigidbodyComponent;
 import com.alegz.mermaid.components.SpriteRendererComponent;
 import com.alegz.mermaid.components.TilemapRendererComponent;
 import com.alegz.mermaid.components.TransformComponent;
+import com.alegz.mermaid.ecs.Engine;
+import com.alegz.mermaid.ecs.Entity;
 import com.alegz.mermaid.physics.BoxCollider;
 import com.alegz.mermaid.physics.TilemapCollider;
 import com.alegz.mermaid.rendering.material.Material;
@@ -14,8 +16,6 @@ import com.alegz.mermaid.systems.PhysicsDebugSystem;
 import com.alegz.mermaid.systems.PhysicsSystem;
 import com.alegz.mermaid.systems.PlayerSystem;
 import com.alegz.mermaid.systems.RenderingSystem;
-import com.badlogic.ashley.core.Engine;
-import com.badlogic.ashley.core.Entity;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
@@ -34,6 +34,13 @@ public class MermaidGame extends ApplicationAdapter
 		Tilemap tilemap = assets.getTilemap(Assets.TILEMAP_LEVEL0);
 		
 		engine = new Engine();
+		engine.addComponentStorage(TransformComponent.class);
+		engine.addComponentStorage(SpriteRendererComponent.class);
+		engine.addComponentStorage(TilemapRendererComponent.class);
+		engine.addComponentStorage(RigidbodyComponent.class);
+		engine.addComponentStorage(PlayerComponent.class);
+		engine.addComponentStorage(CameraComponent.class);
+		
 		PhysicsSystem physicsSystem = new PhysicsSystem();
 		RenderingSystem renderingSystem = new RenderingSystem();
 		renderingSystem.getCamera().backgroundColor = new Color(204 / 255.0f, 232 / 255.0f, 255 / 255.0f, 1);
@@ -64,8 +71,8 @@ public class MermaidGame extends ApplicationAdapter
 			spriteRenderer.material = spriteMaterial;
 			
 			Entity entity = new Entity();
-			entity.add(transform);
-			entity.add(spriteRenderer);
+			engine.addComponent(entity, transform);
+			engine.addComponent(entity, spriteRenderer);
 			engine.addEntity(entity);
 		}
 		
@@ -80,8 +87,8 @@ public class MermaidGame extends ApplicationAdapter
 			spriteRenderer.material = backgroundMaterial;
 			
 			Entity entity = new Entity();
-			entity.add(transform);
-			entity.add(spriteRenderer);
+			engine.addComponent(entity, transform);
+			engine.addComponent(entity, spriteRenderer);
 			engine.addEntity(entity);
 		}
 		
@@ -96,8 +103,8 @@ public class MermaidGame extends ApplicationAdapter
 			spriteRenderer.material = backgroundMaterial;
 			
 			Entity entity = new Entity();
-			entity.add(transform);
-			entity.add(spriteRenderer);
+			engine.addComponent(entity, transform);
+			engine.addComponent(entity, spriteRenderer);
 			engine.addEntity(entity);
 		}
 		
@@ -112,8 +119,8 @@ public class MermaidGame extends ApplicationAdapter
 			spriteRenderer.material = backgroundMaterial;
 			
 			Entity entity = new Entity();
-			entity.add(transform);
-			entity.add(spriteRenderer);
+			engine.addComponent(entity, transform);
+			engine.addComponent(entity, spriteRenderer);
 			engine.addEntity(entity);
 		}
 		
@@ -142,11 +149,11 @@ public class MermaidGame extends ApplicationAdapter
 			camera.maxBounds = tilemap.getWorldPos(tilemap.getWidth(), 0);
 			
 			Entity entity = new Entity();
-			entity.add(transform);
-			entity.add(spriteRenderer);
-			entity.add(rigidbody);
-			entity.add(player);
-			entity.add(camera);
+			engine.addComponent(entity, transform);
+			engine.addComponent(entity, spriteRenderer);
+			engine.addComponent(entity, rigidbody);
+			engine.addComponent(entity, player);
+			engine.addComponent(entity, camera);
 			engine.addEntity(entity);
 		}
 		
@@ -163,9 +170,9 @@ public class MermaidGame extends ApplicationAdapter
 			rigidbody.setCollider(collider);
 			
 			Entity entity = new Entity();
-			entity.add(new TransformComponent());
-			entity.add(tilemapRenderer);
-			entity.add(rigidbody);
+			engine.addComponent(entity, new TransformComponent());
+			engine.addComponent(entity, tilemapRenderer);
+			engine.addComponent(entity, rigidbody);
 			engine.addEntity(entity);
 		}
 		
@@ -180,8 +187,8 @@ public class MermaidGame extends ApplicationAdapter
 			spriteRenderer.material = waterMaterial;
 			
 			Entity entity = new Entity();
-			entity.add(transform);
-			entity.add(spriteRenderer);
+			engine.addComponent(entity, transform);
+			engine.addComponent(entity, spriteRenderer);
 			engine.addEntity(entity);
 		}
 	}

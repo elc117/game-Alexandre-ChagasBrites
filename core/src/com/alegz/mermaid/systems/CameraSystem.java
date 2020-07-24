@@ -2,25 +2,29 @@ package com.alegz.mermaid.systems;
 
 import com.alegz.mermaid.components.CameraComponent;
 import com.alegz.mermaid.rendering.PlatformerCamera;
-import com.badlogic.ashley.core.ComponentMapper;
-import com.badlogic.ashley.core.Entity;
-import com.badlogic.ashley.core.Family;
-import com.badlogic.ashley.systems.IteratingSystem;
+import com.alegz.mermaid.ecs.Engine;
+import com.alegz.mermaid.ecs.Entity;
+import com.alegz.mermaid.ecs.IteratingSystem;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.utils.ObjectMap;
 
 public class CameraSystem extends IteratingSystem
 {
-	private ComponentMapper<CameraComponent> cm;
+	private ObjectMap<Entity, CameraComponent> cameraComponents;
 	
 	public CameraSystem() 
 	{
-		super(Family.all(CameraComponent.class).get());
-		cm = ComponentMapper.getFor(CameraComponent.class);
+		super();
+	}
+	
+	public void addedToEngine(Engine engine) 
+	{
+		cameraComponents = engine.getComponentStorage(CameraComponent.class);
 	}
 
 	public void processEntity(Entity entity, float deltaTime)
 	{
-		CameraComponent cam = cm.get(entity);
+		CameraComponent cam = cameraComponents.get(entity);
 		PlatformerCamera camera = cam.camera;
 		
 		camera.position.x = MathUtils.clamp(cam.target.position.x,
@@ -28,5 +32,10 @@ public class CameraSystem extends IteratingSystem
 				cam.maxBounds.x - camera.getSize().x);
 		camera.position.y = MathUtils.clamp(cam.target.position.y,
 				cam.minBounds.y + camera.getSize().y, 0);
+	}
+	
+	protected boolean shouldAddEntity(Engine engine, Entity entity)
+	{
+		return engine.hasComponent(entity, CameraComponent.class);
 	}
 }

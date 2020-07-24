@@ -6,13 +6,12 @@ public class FloatAttribute extends MaterialAttribute
 {
 	public float value;
 	
-	public FloatAttribute(String key, float value)
+	public FloatAttribute(float value)
 	{
-		this.key = key;
 		this.value = value;
 	}
 	
-	public void set(ShaderProgram shader) 
+	public void set(String key, ShaderProgram shader) 
 	{
 		shader.setUniformf(key, value);
 	}

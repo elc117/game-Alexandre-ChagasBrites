@@ -1,7 +1,6 @@
 package com.alegz.mermaid.rendering.material;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
@@ -9,12 +8,12 @@ import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 public class Material 
 {
 	private ShaderProgram shader;
-	private List<MaterialAttribute> attributes;
+	private HashMap<String, MaterialAttribute> attributes;
 	
 	public Material(ShaderProgram shader)
 	{
 		this.shader = shader;
-		attributes = new ArrayList<MaterialAttribute>();
+		attributes = new HashMap<String, MaterialAttribute>();
 	}
 	
 	public ShaderProgram getShader()
@@ -24,33 +23,31 @@ public class Material
 	
 	public void setAttributes()
 	{
-		for (MaterialAttribute attribute : attributes)
-			attribute.set(shader);
+		for (String key : attributes.keySet())
+			attributes.get(key).set(key, shader);
 	}
 	
 	public void setColor(String key, Color color)
 	{
-		for (MaterialAttribute attribute : attributes)
+		MaterialAttribute attribute = attributes.get(key);
+		if (attribute != null)
 		{
-			if (ColorAttribute.class.isInstance(attribute) && attribute.key == key)
-			{
-				ColorAttribute.class.cast(attribute).color = color;
-				return;
-			}
+			ColorAttribute colorAttribute = (ColorAttribute) attribute;
+			colorAttribute.color = color;
+			return;
 		}
-		attributes.add(new ColorAttribute(key, color));
+		attributes.put(key, new ColorAttribute(color));
 	}
 	
 	public void setFloat(String key, float value)
 	{
-		for (MaterialAttribute attribute : attributes)
+		MaterialAttribute attribute = attributes.get(key);
+		if (attribute != null)
 		{
-			if (FloatAttribute.class.isInstance(attribute) && attribute.key == key)
-			{
-				FloatAttribute.class.cast(attribute).value = value;
-				return;
-			}
+			FloatAttribute floatAttribute = (FloatAttribute) attribute;
+			floatAttribute.value = value;
+			return;
 		}
-		attributes.add(new FloatAttribute(key, value));
+		attributes.put(key, new FloatAttribute(value));
 	}
 }

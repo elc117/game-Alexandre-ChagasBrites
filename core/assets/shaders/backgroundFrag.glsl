@@ -22,7 +22,7 @@ void main()
 	float n = u_nearPlane;
 	float f = u_farPlane;
 	float depth = 2.0 * n * f / (f + n - (gl_FragCoord.z * 2.0 - 1.0) * (f - n));
-	depth = clamp((depth - 1.0) * 0.5, 0, 1);//clamp(smoothstep(1.0, 3.0, depth), 0, 1);
+	depth = clamp((depth - 1.0) * 0.5, 0.0, 1.0);//clamp(smoothstep(1.0, 3.0, depth), 0, 1);
 
 	vec3 background = mix(u_topColor.rgb, u_bottomColor.rgb, v_texCoords.y);
 	gl_FragColor.rgb = mix(gl_FragColor.rgb, background, v_texCoords.y * depth);

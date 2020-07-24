@@ -1,7 +1,7 @@
 package com.alegz.mermaid.components;
 
 import com.alegz.mermaid.physics.Collider;
-import com.badlogic.ashley.core.Component;
+import com.alegz.mermaid.ecs.Component;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;

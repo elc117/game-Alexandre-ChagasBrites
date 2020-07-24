@@ -1,7 +1,7 @@
 package com.alegz.mermaid.systems;
 
 import com.alegz.mermaid.rendering.PlatformerCamera;
-import com.badlogic.ashley.core.EntitySystem;
+import com.alegz.mermaid.ecs.EntitySystem;
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
 import com.badlogic.gdx.physics.box2d.World;
 
@@ -22,6 +22,6 @@ public class PhysicsDebugSystem extends EntitySystem
  
     public void update(float deltaTime)
     {
-        debugRenderer.render(world, camera.getProjMatrix());
+        debugRenderer.render(world, camera.getBox2DMatrix());
     }
 }

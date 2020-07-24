@@ -4,7 +4,6 @@ import com.alegz.mermaid.components.SpriteRendererComponent;
 import com.alegz.mermaid.components.TilemapRendererComponent;
 import com.alegz.mermaid.components.TransformComponent;
 import com.alegz.mermaid.rendering.material.Material;
-import com.alegz.mermaid.rendering.material.MaterialAttribute;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;

@@ -1,19 +1,19 @@
 package com.alegz.mermaid.systems;
 
-import com.alegz.mermaid.components.RendererComponent;
+import java.util.ArrayList;
+import java.util.List;
+
 import com.alegz.mermaid.components.SpriteRendererComponent;
 import com.alegz.mermaid.components.TilemapRendererComponent;
 import com.alegz.mermaid.components.TransformComponent;
 import com.alegz.mermaid.rendering.PlatformerCamera;
 import com.alegz.mermaid.rendering.Renderer;
-import com.badlogic.ashley.core.ComponentMapper;
-import com.badlogic.ashley.core.Engine;
-import com.badlogic.ashley.core.Entity;
-import com.badlogic.ashley.core.EntitySystem;
-import com.badlogic.ashley.core.Family;
-import com.badlogic.ashley.utils.ImmutableArray;
+import com.alegz.mermaid.ecs.Engine;
+import com.alegz.mermaid.ecs.Entity;
+import com.alegz.mermaid.ecs.EntitySystem;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.utils.ObjectMap;
 
 public class RenderingSystem extends EntitySystem
 {
@@ -21,25 +21,25 @@ public class RenderingSystem extends EntitySystem
 	private final static int spriteCount = 1024;
 	private PlatformerCamera camera;
 	
-	private ImmutableArray<Entity> entities;
+	private List<Entity> entities;
 	
-	private ComponentMapper<TransformComponent> tm;
-	private ComponentMapper<SpriteRendererComponent> srm;
-	private ComponentMapper<TilemapRendererComponent> trm;
+	private ObjectMap<Entity, TransformComponent> transformComponents;
+	private ObjectMap<Entity, SpriteRendererComponent> spriteRendererComponents;
+	private ObjectMap<Entity, TilemapRendererComponent> tilemapRendererComponents;
 	
 	public RenderingSystem()
 	{
 		renderer = new Renderer(spriteCount);
 		camera = new PlatformerCamera();
 		
-		tm = ComponentMapper.getFor(TransformComponent.class);
-		srm = ComponentMapper.getFor(SpriteRendererComponent.class);
-		trm = ComponentMapper.getFor(TilemapRendererComponent.class);
+		entities = new ArrayList<Entity>();
 	}
 	
 	public void addedToEngine(Engine engine) 
 	{
-		entities = engine.getEntitiesFor(Family.all(TransformComponent.class).one(SpriteRendererComponent.class, TilemapRendererComponent.class).get());
+		transformComponents = engine.getComponentStorage(TransformComponent.class);
+		spriteRendererComponents = engine.getComponentStorage(SpriteRendererComponent.class);
+		tilemapRendererComponents = engine.getComponentStorage(TilemapRendererComponent.class);
 	}
 	
 	public void update(float deltaTime)
@@ -60,9 +60,9 @@ public class RenderingSystem extends EntitySystem
 		Gdx.gl20.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 		for (Entity entity : entities) 
 		{
-			TransformComponent transform = tm.get(entity);
-			SpriteRendererComponent spriteRenderer = srm.get(entity);
-			TilemapRendererComponent tilemapRenderer = trm.get(entity);
+			TransformComponent transform = transformComponents.get(entity);
+			SpriteRendererComponent spriteRenderer = spriteRendererComponents.get(entity);
+			TilemapRendererComponent tilemapRenderer = tilemapRendererComponents.get(entity);
 			
 			if (spriteRenderer != null)
 				renderer.drawSprite(transform, spriteRenderer);
@@ -73,7 +73,14 @@ public class RenderingSystem extends EntitySystem
 		Gdx.gl20.glDisable(GL20.GL_BLEND);
 		
 		renderer.end();
-		
+	}
+	
+	public void entityAdded(Engine engine, Entity entity)
+	{
+		if (engine.hasComponent(entity, TransformComponent.class) &&
+			(engine.hasComponent(entity, SpriteRendererComponent.class) ||
+			 engine.hasComponent(entity, TilemapRendererComponent.class)))
+			entities.add(entity);
 	}
 	
 	public PlatformerCamera getCamera()

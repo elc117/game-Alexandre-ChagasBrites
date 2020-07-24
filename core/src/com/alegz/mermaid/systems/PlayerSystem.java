@@ -3,40 +3,39 @@ package com.alegz.mermaid.systems;
 import com.alegz.mermaid.components.PlayerComponent;
 import com.alegz.mermaid.components.RigidbodyComponent;
 import com.alegz.mermaid.components.TransformComponent;
-import com.badlogic.ashley.core.ComponentMapper;
-import com.badlogic.ashley.core.Entity;
-import com.badlogic.ashley.core.Family;
-import com.badlogic.ashley.systems.IteratingSystem;
+import com.alegz.mermaid.ecs.Engine;
+import com.alegz.mermaid.ecs.Entity;
+import com.alegz.mermaid.ecs.IteratingSystem;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.ObjectMap;
 
 public class PlayerSystem extends IteratingSystem
-{
-	private ComponentMapper<TransformComponent> tm;
-	private ComponentMapper<RigidbodyComponent> rm;
-	private ComponentMapper<PlayerComponent> pm;
+{	
+	private ObjectMap<Entity, TransformComponent> transformComponents;
+	private ObjectMap<Entity, RigidbodyComponent> rigidbodyComponents;
+	private ObjectMap<Entity, PlayerComponent> playerComponents;
 
 	public PlayerSystem() 
 	{
-		super(Family.all(TransformComponent.class, 
-						 RigidbodyComponent.class,
-						 PlayerComponent.class).get());
-		tm = ComponentMapper.getFor(TransformComponent.class);
-		rm = ComponentMapper.getFor(RigidbodyComponent.class);
-		pm = ComponentMapper.getFor(PlayerComponent.class);
+		super();
+	}
+	
+	public void addedToEngine(Engine engine) 
+	{
+		transformComponents = engine.getComponentStorage(TransformComponent.class);
+		rigidbodyComponents = engine.getComponentStorage(RigidbodyComponent.class);
+		playerComponents = engine.getComponentStorage(PlayerComponent.class);
 	}
 
 	public void processEntity(Entity entity, float deltaTime) 
 	{
-		TransformComponent transform = tm.get(entity);
-		RigidbodyComponent rigidbody = rm.get(entity);
-		PlayerComponent player = pm.get(entity);
+		TransformComponent transform = transformComponents.get(entity);
+		RigidbodyComponent rigidbody = rigidbodyComponents.get(entity);
+		PlayerComponent player = playerComponents.get(entity);
 			
-		transform.position.x += player.velocity.x * deltaTime;
-		transform.position.y += player.velocity.y * deltaTime;
-		
 		Vector2 input = new Vector2(
 			Gdx.input.isKeyPressed(Input.Keys.A) ? -1 : 
 				(Gdx.input.isKeyPressed(Input.Keys.D) ? 1 : 0),
@@ -69,5 +68,12 @@ public class PlayerSystem extends IteratingSystem
 		//velocity.scl(1 / (1 + 5 * deltaTime * (1 - input.len2())));
 		
 		rigidbody.body.setLinearVelocity(player.velocity);
+	}
+
+	protected boolean shouldAddEntity(Engine engine, Entity entity) 
+	{
+		return engine.hasComponent(entity, TransformComponent.class) &&
+			   engine.hasComponent(entity, RigidbodyComponent.class) &&
+			   engine.hasComponent(entity, PlayerComponent.class);
 	}
 }

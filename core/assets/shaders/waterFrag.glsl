@@ -12,7 +12,7 @@ uniform LOWP vec4 u_color;
 
 void main()
 {
-	gl_FragColor = u_color * vec4(117 / 255.0, 206 / 255.0, 251 / 255.0, 0.25);
-	gl_FragColor = mix(gl_FragColor, vec4(76 / 255.0, 106 / 255.0, 200 / 255.0, 0.5), smoothstep(0, 1, v_texCoords.y));
-	gl_FragColor = mix(gl_FragColor, vec4(1), step(v_texCoords.y, 1 / (20.0 * 16)));
+	gl_FragColor = u_color * vec4(117.0 / 255.0, 206.0 / 255.0, 251.0 / 255.0, 0.25);
+	gl_FragColor = mix(gl_FragColor, vec4(76.0 / 255.0, 106.0 / 255.0, 200.0 / 255.0, 0.5), smoothstep(0.0, 1.0, v_texCoords.y));
+	gl_FragColor = mix(gl_FragColor, vec4(1.0), step(v_texCoords.y, 1.0 / (20.0 * 16.0)));
 }
