@@ -15,4 +15,9 @@ public class Rect
 		this.width = width;
 		this.height = height;
 	}
+	
+	public Rect cpy()
+	{
+		return new Rect(x, y, width, height);
+	}
 }

@@ -1,9 +1,9 @@
 attribute vec3 a_position;
 attribute vec2 a_texCoord;
 
-uniform mat4 u_projTrans;
-
 varying vec2 v_texCoords;
+
+uniform mat4 u_projTrans;
 
 void main()
 {

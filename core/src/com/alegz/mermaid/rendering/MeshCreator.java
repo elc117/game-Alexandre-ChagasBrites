@@ -34,6 +34,11 @@ public class MeshCreator
 		mesh.render(shader, GL20.GL_TRIANGLES, 0, activeIndices);
 	}
 	
+	public Mesh getMesh()
+	{
+		return mesh;
+	}
+	
 	public void addSprite(Matrix4 modelMatrix, Rect rect)
 	{
 		Vector3[] quad = new Vector3[] {

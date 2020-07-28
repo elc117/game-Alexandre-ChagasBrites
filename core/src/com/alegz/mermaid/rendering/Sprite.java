@@ -5,12 +5,22 @@ import com.badlogic.gdx.graphics.Texture;
 
 public class Sprite 
 {
-	public Texture texture;
-	public Rect rect;
+	private Texture texture;
+	private Rect rect;
 	
 	public Sprite(Texture texture, Rect rect)
 	{
 		this.texture = texture;
 		this.rect = rect;
+	}
+	
+	public Texture getTexture()
+	{
+		return texture;
+	}
+	
+	public Rect getRect()
+	{
+		return rect;
 	}
 }

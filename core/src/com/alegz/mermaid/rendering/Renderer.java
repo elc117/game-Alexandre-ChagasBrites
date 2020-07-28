@@ -1,10 +1,13 @@
 package com.alegz.mermaid.rendering;
 
+import com.alegz.mermaid.components.MeshRendererComponent;
 import com.alegz.mermaid.components.SpriteRendererComponent;
 import com.alegz.mermaid.components.TilemapRendererComponent;
 import com.alegz.mermaid.components.TransformComponent;
 import com.alegz.mermaid.rendering.material.Material;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Mesh;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.math.Matrix4;
@@ -15,17 +18,16 @@ public class Renderer
 	private int activeSprites;
 	private final int maxSprites;
 	
+	private Shader activeShader;
+	private Texture activeTexture;
+	private Material activeMaterial;
+	
 	private Matrix4 modelMatrix;
 	private Matrix4 projMatrix;
-	
-	private ShaderProgram shader;
-	private Texture texture;
-	private Material material;
 	
 	public Renderer(int spriteCount)
 	{
 		mesh = new MeshCreator(spriteCount * 4, spriteCount * 6);
-		activeSprites = 0;
 		maxSprites = spriteCount;
 		
 		modelMatrix = new Matrix4();
@@ -36,22 +38,19 @@ public class Renderer
 	{
 		mesh.begin();
 		activeSprites = 0;
-		shader = null;
-		texture = null;
-		material = null;
+		activeShader = null;
+		activeTexture = null;
+		activeMaterial = null;
 	}
 	
 	public void flush(boolean begin)
 	{
-		if (shader == null || activeSprites < 1)
+		if (activeShader == null || activeSprites < 1)
 			return;
 		
-		shader.setUniformMatrix("u_projTrans", projMatrix);
-		shader.setUniformf("u_color", Color.WHITE);
-		material.setAttributes();
-		
+		updateRenderer();
 		mesh.end();
-		mesh.render(shader);
+		mesh.render(activeShader.getProgram());
 		
 		if (begin)
 		{
@@ -63,8 +62,16 @@ public class Renderer
 	public void end()
 	{
 		flush(false);
-		if (shader != null)
-			shader.end();
+		if (activeShader != null)
+			activeShader.end();
+	}
+	
+	private void updateRenderer()
+	{
+		ShaderProgram program = activeShader.getProgram();
+		program.setUniformMatrix("u_projTrans", projMatrix);
+		program.setUniformf("u_color", Color.WHITE);
+		activeMaterial.setAttributes();
 	}
 	
 	public void drawSprite(TransformComponent transform, SpriteRendererComponent spriteRenderer)
@@ -72,26 +79,34 @@ public class Renderer
 		if (spriteRenderer.material == null || spriteRenderer.sprite == null)
 			return;
 		setMaterial(spriteRenderer.material);
-		if (spriteRenderer.sprite.texture != null)
-			setTexture(spriteRenderer.sprite.texture);
+		if (spriteRenderer.sprite.getTexture() != null)
+			setTexture(spriteRenderer.sprite.getTexture());
 		
 		modelMatrix.idt();
-		modelMatrix.translate(transform.position.x, transform.position.y, 1+spriteRenderer.depth);
+		modelMatrix.translate(transform.position.x, transform.position.y, spriteRenderer.depth);
 		modelMatrix.rotate(0.0f, 0.0f, 1.0f, transform.rotation);
 		modelMatrix.scale(transform.scale.x * (1 + spriteRenderer.depth), transform.scale.y * (1 + spriteRenderer.depth), 1);
 		modelMatrix.translate(0.5f - spriteRenderer.pivot.x, 0.5f - spriteRenderer.pivot.y, 0);
-		mesh.addSprite(modelMatrix, spriteRenderer.sprite.rect);
+		mesh.addSprite(modelMatrix, spriteRenderer.sprite.getRect());
 		
 		activeSprites++;
 		if (activeSprites == maxSprites)
 			flush(true);
 	}
 	
+	public void drawMesh(TransformComponent transform, MeshRendererComponent meshRenderer)
+	{
+		setMaterial(meshRenderer.material);
+		updateRenderer();
+		meshRenderer.mesh.render(activeShader.getProgram(), GL20.GL_TRIANGLES);
+	}
+	
 	public void drawTilemap(TransformComponent transform, TilemapRendererComponent tilemapRenderer)
 	{
 		setMaterial(tilemapRenderer.material);
-		setTexture(tilemapRenderer.spriteAtlas.texture);
-		tilemapRenderer.mesh.render(shader);
+		setTexture(tilemapRenderer.spriteAtlas.getTexture());
+		updateRenderer();
+		tilemapRenderer.mesh.render(activeShader.getProgram());
 	}
 	
 	public void setProjectionMatrix(Matrix4 projMatrix)
@@ -102,40 +117,40 @@ public class Renderer
 	
 	public void setMaterial(Material material)
 	{
-		if (this.material != material)
+		if (activeMaterial != material)
 		{
 			flush(true);
 			if (material != null)
 				setShader(material.getShader());
-			this.material = material;
+			activeMaterial = material;
 		}
 	}
 	
-	public void setShader(ShaderProgram shader)
+	public void setShader(Shader shader)
 	{
-		if (this.shader != shader)
+		if (activeShader != shader)
 		{
 			flush(true);
-			if (this.shader != null)
-				this.shader.end();
+			if (activeShader != null)
+				activeShader.end();
 				
 			if (shader != null)
 				shader.begin();
-			this.shader = shader;
+			activeShader = shader;
 		}
 	}
 	
 	private void setTexture(Texture texture)
 	{
-		if (this.texture != texture)
+		if (activeTexture != texture)
 		{
 			flush(true);
 			if (texture != null)
 			{
-				shader.setUniformi("u_texture", 0);
+				activeShader.getProgram().setUniformi("u_texture", 0);
 				texture.bind(0);
 			}
-			this.texture = texture;
+			activeTexture = texture;
 		}
 	}
 	

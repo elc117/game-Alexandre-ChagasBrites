@@ -17,7 +17,7 @@ public class CameraSystem extends IteratingSystem
 		super();
 	}
 	
-	public void addedToEngine(Engine engine) 
+	public void start(Engine engine) 
 	{
 		cameraComponents = engine.getComponentStorage(CameraComponent.class);
 	}

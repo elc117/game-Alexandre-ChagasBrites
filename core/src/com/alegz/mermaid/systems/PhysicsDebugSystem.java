@@ -22,6 +22,6 @@ public class PhysicsDebugSystem extends EntitySystem
  
     public void update(float deltaTime)
     {
-        debugRenderer.render(world, camera.getBox2DMatrix());
+        debugRenderer.render(world, camera.getProjMatrix());
     }
 }

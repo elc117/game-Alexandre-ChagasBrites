@@ -16,7 +16,6 @@ public class PlatformerCamera
 	private Matrix4 projMatrix;
 	private Matrix4 screenMatrix;
 	private Matrix4 worldMatrix;
-	private Matrix4 box2DMatrix;
 	
 	public Color backgroundColor;
 	
@@ -32,7 +31,6 @@ public class PlatformerCamera
 		projMatrix = new Matrix4();
 		screenMatrix = new Matrix4();
 		worldMatrix = new Matrix4();
-		box2DMatrix = new Matrix4();
 		
 		backgroundColor = Color.BLACK.cpy();
 	}
@@ -48,20 +46,27 @@ public class PlatformerCamera
 		return perspectiveMatrix;
 	}
 	
-	public void update(float width, float height, float size)
+	public void setPixelPerfectProjMatrix(int width, int height, int size)
+	{
+		int cell = height / size;
+		float multiplier = (float)Math.ceil((float)cell / 16.0f);
+		setProjMatrix(width, height, height / (32.0f * multiplier));
+	}
+	
+	public void setProjMatrix(float width, float height, float size)
 	{
 		this.size.x = size * width / height;
 		this.size.y = size;
-		update(width, height);
+		setProjMatrix(width, height);
 	}
 	
-	public void update(float width, float height)
+	public void setProjMatrix(float width, float height)
 	{
 		projMatrix.idt();
 		projMatrix.mul(perspectiveMatrix(nearPlane, farPlane));
 		projMatrix.scl(1.0f / this.size.x, 1.0f / this.size.y, 1.0f);
 		projMatrix.rotate(0, 0, 1, -rotation);
-		projMatrix.translate(-position.x, -position.y, 0);
+		projMatrix.translate(-position.x, -position.y, 1);
 		
 		screenMatrix.idt();
 		screenMatrix.translate(width * 0.5f, height * 0.5f, 0);
@@ -70,19 +75,11 @@ public class PlatformerCamera
 		
 		worldMatrix = screenMatrix.cpy();
 		worldMatrix.inv();
-		
-		box2DMatrix = projMatrix.cpy();
-		box2DMatrix.translate(0, 0, 1);
 	}
 	
 	public Matrix4 getProjMatrix()
 	{
 		return projMatrix;
-	}
-	
-	public Matrix4 getBox2DMatrix()
-	{
-		return box2DMatrix;
 	}
 	
 	public Vector2 getSize()

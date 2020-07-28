@@ -1,13 +1,13 @@
 package com.alegz.mermaid.ecs;
 
 public abstract class EntitySystem 
-{
-	public void update(float deltaTime)
+{	
+	public void start(Engine engine)
 	{
 		
 	}
 	
-	public void addedToEngine(Engine engine) 
+	public void update(float deltaTime)
 	{
 		
 	}
@@ -17,7 +17,7 @@ public abstract class EntitySystem
 		
 	}
 	
-	public void entityRemoved()
+	public void entityRemoved(Engine engine, Entity entity)
 	{
 		
 	}

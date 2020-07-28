@@ -11,7 +11,7 @@ public abstract class IteratingSystem extends EntitySystem
 	
 	public IteratingSystem()
 	{
-		entities = new ArrayList<Entity>();
+		entities = new ArrayList<>();
 	}
 	
 	public final void update(float deltaTime)

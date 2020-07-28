@@ -7,29 +7,62 @@ import com.badlogic.gdx.utils.ObjectMap;
 
 public class Engine 
 {
-	private ObjectMap<Class<?>, EntitySystem> systems;
+	private ObjectMap<Class<? extends EntitySystem>, EntitySystem> systems;
 	private List<EntitySystem> sortedSystems;
-	private ObjectMap<Class<?>, ObjectMap<Entity, Component>> componentsStorage;
+	private ObjectMap<Class<? extends Component>, ObjectMap<Entity, Component>> componentsStorage;
+	
+	private List<Entity> activeEntities;
+	private List<Entity> inactiveEntities;
+	private List<Entity> entityQueue;
 	
 	public Engine()
 	{
-		systems = new ObjectMap<Class<?>, EntitySystem>();
-		sortedSystems = new ArrayList<EntitySystem>();
-		componentsStorage = new ObjectMap<Class<?>, ObjectMap<Entity, Component>>();
+		systems = new ObjectMap<>();
+		sortedSystems = new ArrayList<>();
+		componentsStorage = new ObjectMap<>();
+		
+		activeEntities = new ArrayList<>();
+		inactiveEntities = new ArrayList<>();
+		entityQueue = new ArrayList<>();
+	}
+	
+	public void start()
+	{
+		for (EntitySystem system : sortedSystems)
+			system.start(this);
 	}
 	
 	public void update(float deltaTime)
 	{
+		entityQueue.clear();
 		for (EntitySystem system : sortedSystems)
 			system.update(deltaTime);
+		
+		for (Entity entity : entityQueue)
+		{
+			if (inactiveEntities.contains(entity))
+			{
+				activeEntities.add(entity);
+				inactiveEntities.remove(entity);
+				
+				for (EntitySystem system : systems.values())
+					system.entityAdded(this, entity);
+			}
+			else if (activeEntities.contains(entity))
+			{
+				activeEntities.remove(entity);
+				inactiveEntities.add(entity);
+				
+				for (EntitySystem system : systems.values())
+					system.entityRemoved(this, entity);
+			}
+		}
 	}
 	
 	public void addSystem(EntitySystem system)
 	{
-		Class<? extends EntitySystem> systemType = system.getClass();
-		systems.put(systemType, system);
+		systems.put(system.getClass(), system);
 		sortedSystems.add(system);
-		system.addedToEngine(this);
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -40,14 +73,22 @@ public class Engine
 	
 	public void addComponent(Entity entity, Component component)
 	{
-		Class<? extends Component> componentType = component.getClass();
-		ObjectMap<Entity, Component> componentStorage = componentsStorage.get(componentType);
+		ObjectMap<Entity, Component> componentStorage = componentsStorage.get(component.getClass());
 		if (componentStorage == null)
 		{
 			componentStorage = new ObjectMap<Entity, Component>();
-			componentsStorage.put(componentType, componentStorage);
+			componentsStorage.put(component.getClass(), componentStorage);
 		}
 		componentStorage.put(entity, component);
+	}
+	
+	@SuppressWarnings("unchecked")
+	public <T extends Component> T getComponent(Entity entity, Class<T> componentType)
+	{
+		ObjectMap<Entity, Component> componentStorage = componentsStorage.get(componentType);
+		if (componentStorage == null)
+			return null;
+		return (T) componentStorage.get(entity);
 	}
 	
 	public boolean hasComponent(Entity entity, Class<? extends Component> componentType)
@@ -67,17 +108,23 @@ public class Engine
 	@SuppressWarnings("unchecked")
 	public <T extends Component> ObjectMap<Entity, T> getComponentStorage(Class<T> componentType)
 	{
-		return (ObjectMap<Entity, T>) componentsStorage.get(componentType);
+		return (ObjectMap<Entity, T>)componentsStorage.get(componentType);
 	}
 	
 	public void addEntity(Entity entity)
 	{
+		activeEntities.add(entity);
 		for (EntitySystem system : systems.values())
 			system.entityAdded(this, entity);
 	}
 	
 	public void setActive(Entity entity, boolean active)
 	{
+		if (entityQueue.contains(entity))
+			return;
 		
+		if (active && inactiveEntities.contains(entity) ||
+			!active && activeEntities.contains(entity))
+			entityQueue.add(entity);
 	}
 }

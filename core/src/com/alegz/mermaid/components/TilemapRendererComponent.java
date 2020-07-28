@@ -44,7 +44,6 @@ public class TilemapRendererComponent extends RendererComponent
 		
 		Vector2 pivot = new Vector2(0.0f, 1.0f);
 		Matrix4 modelMatrix = new Matrix4();
-		Rect rect = new Rect(0, 0, 16, 16);
 		
 		for (int y = 0; y < tilemap.getHeight(); y++)
 		{
@@ -52,89 +51,51 @@ public class TilemapRendererComponent extends RendererComponent
 			{
 				Vector2 position = tilemap.getWorldPos(x, y);
 				modelMatrix.idt();
-				modelMatrix.translate(position.x, position.y, 1);
+				modelMatrix.translate(position.x, position.y, 0);
 				modelMatrix.translate(0.5f - pivot.x, 0.5f - pivot.y, 0);
 				
-				rect.width = 16;
-				rect.height = 16;
+				Rect rect = spriteAtlas.getRect(0, 0);
 				switch(tilemap.getTile(x, y))
 				{
 				case 1:
-					rect.x = 16;
-					rect.y = 16;
+					rect = spriteAtlas.getRect(1, 1);
 					if (tilemap.getTile(x + 1, y) == 1 && 
 						tilemap.getTile(x, y + 1) == 1 &&
 						tilemap.getTile(x + 1, y + 1) != 1)
-					{
-						rect.x = 64;
-						rect.y = 16;
-					}
+						rect = spriteAtlas.getRect(4, 1);
 					else if (tilemap.getTile(x + 1, y) == 1 && 
 							 tilemap.getTile(x, y - 1) == 1 &&
 							 tilemap.getTile(x + 1, y - 1) != 1)
-					{
-						rect.x = 64;
-						rect.y = 0;
-					}
+						rect = spriteAtlas.getRect(4, 0);
 					else if (tilemap.getTile(x - 1, y) == 1 && 
 							 tilemap.getTile(x, y + 1) == 1 &&
 							 tilemap.getTile(x - 1, y + 1) != 1)
-					{
-						rect.x = 48;
-						rect.y = 16;
-					}
+						rect = spriteAtlas.getRect(3, 1);
 					else if (tilemap.getTile(x - 1, y) == 1 && 
 							 tilemap.getTile(x, y - 1) == 1 &&
 							 tilemap.getTile(x - 1, y - 1) != 1)
-					{
-						rect.x = 48;
-						rect.y = 0;
-					}
+						rect = spriteAtlas.getRect(3, 0);
 					else if (tilemap.getTile(x + 1, y) != 1 && x != tilemap.getWidth() - 1 && 
 						tilemap.getTile(x, y + 1) != 1)
-					{
-						rect.x = 32;
-						rect.y = 32;
-					}
+						rect = spriteAtlas.getRect(2, 2);
 					else if (tilemap.getTile(x + 1, y) != 1 && x != tilemap.getWidth() - 1 && 
 							 tilemap.getTile(x, y - 1) != 1)
-					{
-						rect.x = 32;
-						rect.y = 0;
-					}
+						rect = spriteAtlas.getRect(2, 0);
 					else if (tilemap.getTile(x + 1, y) != 1 && x != tilemap.getWidth() - 1)
-					{
-						rect.x = 32;
-						rect.y = 16;
-					}
+						rect = spriteAtlas.getRect(2, 1);
 					else if (tilemap.getTile(x - 1, y) != 1 && x != 0 && 
 							 tilemap.getTile(x, y + 1) != 1)
-					{
-						rect.x = 0;
-						rect.y = 32;
-					}
+						rect = spriteAtlas.getRect(0, 2);
 					else if (tilemap.getTile(x - 1, y) != 1 && x != 0 &&
 							 tilemap.getTile(x, y - 1) != 1)
-					{
-						rect.x = 0;
-						rect.y = 0;
-					}
+						rect = spriteAtlas.getRect(0, 0);
 					else if (tilemap.getTile(x - 1, y) != 1 && x != 0)
-					{
-						rect.x = 0;
-						rect.y = 16;
-					}
+						rect = spriteAtlas.getRect(0, 1);
 					else if (tilemap.getTile(x, y + 1) != 1 && y != tilemap.getHeight() - 1)
-					{
-						rect.x = 16;
-						rect.y = 32;
-					}
+						rect = spriteAtlas.getRect(1, 2);
 					else if (tilemap.getTile(x, y - 1) != 1)
-					{
-						rect.x = 16;
-						rect.y = 0;
-					}
-					mesh.addSprite(modelMatrix, spriteAtlas.getRect(rect));
+						rect = spriteAtlas.getRect(1, 0);
+					mesh.addSprite(modelMatrix, rect);
 					break;
 				}
 			}
