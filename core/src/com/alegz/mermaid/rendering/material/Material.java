@@ -5,6 +5,7 @@ import java.util.HashMap;
 import com.alegz.mermaid.rendering.Shader;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.math.Matrix4;
 
 public class Material 
 {
@@ -51,6 +52,18 @@ public class Material
 			return;
 		}
 		attributes.put(key, new FloatArrayAttribute(values, length));
+	}
+	
+	public void setMatrix(String key, Matrix4 matrix)
+	{
+		MaterialAttribute attribute = attributes.get(key);
+		if (attribute != null)
+		{
+			MatrixAttribute floatArratAttribute = (MatrixAttribute)attribute;
+			floatArratAttribute.matrix = matrix;
+			return;
+		}
+		attributes.put(key, new MatrixAttribute(matrix));
 	}
 	
 	public void setColor(String key, Color color)

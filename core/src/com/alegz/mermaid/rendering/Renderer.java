@@ -1,16 +1,20 @@
 package com.alegz.mermaid.rendering;
 
+import com.alegz.mermaid.PixelFont;
+import com.alegz.mermaid.PixelFontGlyph;
+import com.alegz.mermaid.components.ImageRendererComponent;
 import com.alegz.mermaid.components.MeshRendererComponent;
 import com.alegz.mermaid.components.SpriteRendererComponent;
+import com.alegz.mermaid.components.TextRendererComponent;
 import com.alegz.mermaid.components.TilemapRendererComponent;
 import com.alegz.mermaid.components.TransformComponent;
+import com.alegz.mermaid.components.UITransformComponent;
 import com.alegz.mermaid.rendering.material.Material;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.Mesh;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.glutils.ShaderProgram;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Matrix4;
+import com.badlogic.gdx.math.Vector2;
 
 public class Renderer 
 {
@@ -48,7 +52,6 @@ public class Renderer
 		if (activeShader == null || activeSprites < 1)
 			return;
 		
-		updateRenderer();
 		mesh.end();
 		mesh.render(activeShader.getProgram());
 		
@@ -66,28 +69,24 @@ public class Renderer
 			activeShader.end();
 	}
 	
-	private void updateRenderer()
-	{
-		ShaderProgram program = activeShader.getProgram();
-		program.setUniformMatrix("u_projTrans", projMatrix);
-		program.setUniformf("u_color", Color.WHITE);
-		activeMaterial.setAttributes();
-	}
-	
 	public void drawSprite(TransformComponent transform, SpriteRendererComponent spriteRenderer)
 	{
-		if (spriteRenderer.material == null || spriteRenderer.sprite == null)
+		if (spriteRenderer.material == null)
 			return;
 		setMaterial(spriteRenderer.material);
-		if (spriteRenderer.sprite.getTexture() != null)
-			setTexture(spriteRenderer.sprite.getTexture());
 		
 		modelMatrix.idt();
 		modelMatrix.translate(transform.position.x, transform.position.y, spriteRenderer.depth);
 		modelMatrix.rotate(0.0f, 0.0f, 1.0f, transform.rotation);
-		modelMatrix.scale(transform.scale.x * (1 + spriteRenderer.depth), transform.scale.y * (1 + spriteRenderer.depth), 1);
+		modelMatrix.scale(transform.scale.x, transform.scale.y, 1);
 		modelMatrix.translate(0.5f - spriteRenderer.pivot.x, 0.5f - spriteRenderer.pivot.y, 0);
-		mesh.addSprite(modelMatrix, spriteRenderer.sprite.getRect());
+		if (spriteRenderer.sprite != null)
+		{
+			setTexture(spriteRenderer.sprite.getTexture());
+			mesh.addSprite(modelMatrix, spriteRenderer.sprite);
+		}
+		else
+			mesh.addSprite(modelMatrix, 0, 0, 1, 1);
 		
 		activeSprites++;
 		if (activeSprites == maxSprites)
@@ -97,16 +96,79 @@ public class Renderer
 	public void drawMesh(TransformComponent transform, MeshRendererComponent meshRenderer)
 	{
 		setMaterial(meshRenderer.material);
-		updateRenderer();
 		meshRenderer.mesh.render(activeShader.getProgram(), GL20.GL_TRIANGLES);
 	}
 	
 	public void drawTilemap(TransformComponent transform, TilemapRendererComponent tilemapRenderer)
 	{
 		setMaterial(tilemapRenderer.material);
-		setTexture(tilemapRenderer.spriteAtlas.getTexture());
-		updateRenderer();
+		setTexture(tilemapRenderer.spriteAtlas.getRegions().get(0).getTexture());
 		tilemapRenderer.mesh.render(activeShader.getProgram());
+	}
+	
+	public void drawImage(PlatformerCamera camera, UITransformComponent transform, ImageRendererComponent imageRenderer)
+	{
+		if (imageRenderer.material == null)
+			return;
+		setMaterial(imageRenderer.material);
+		
+		modelMatrix.idt();
+		modelMatrix.translate(transform.position.x + transform.anchor.x * camera.getUIWidth(), 
+							  transform.position.y + transform.anchor.y * camera.getUIHeight(), 0);
+		modelMatrix.scale(transform.scale.x, transform.scale.y, 1);
+		modelMatrix.translate(0.5f - imageRenderer.pivot.x, 0.5f - imageRenderer.pivot.y, 0);
+		if (imageRenderer.sprite != null)
+		{
+			setTexture(imageRenderer.sprite.getTexture());
+			mesh.addSprite(modelMatrix, imageRenderer.sprite);
+		}
+		else
+			mesh.addSprite(modelMatrix, 0, 0, 1, 1);
+		
+		activeSprites++;
+		if (activeSprites == maxSprites)
+			flush(true);
+	}
+	
+	public void drawText(PlatformerCamera camera, PixelFont pixelFont, UITransformComponent transform, TextRendererComponent textRenderer)
+	{
+		if (textRenderer.material == null)
+			return;
+		setMaterial(textRenderer.material);
+		setTexture(pixelFont.getTexture());
+		
+		Vector2 position = transform.position.cpy();
+		position.add(transform.anchor.x * camera.getUIWidth() + textRenderer.offset.x, 
+					 transform.anchor.y * camera.getUIHeight() + textRenderer.offset.y);
+		TextureRegion sprite = new TextureRegion(pixelFont.getTexture());
+		
+		final Vector2 pivot = new Vector2(0.0f, 0.0f);
+		final int pixelKerning = -1;
+		for (Character character : textRenderer.text.toCharArray())
+		{
+			if (character == '\n')
+			{
+				position.x = transform.position.x + transform.anchor.x * camera.getUIWidth() + textRenderer.offset.x;
+				position.y -= 9;
+			}
+			
+			PixelFontGlyph glyph = pixelFont.getGlyph(character);
+			if (glyph == null)
+				continue;
+			
+			modelMatrix.idt();
+			modelMatrix.translate(position.x, position.y + glyph.offset, 0);
+			modelMatrix.scale(glyph.width * textRenderer.fontSize, glyph.height * textRenderer.fontSize, 1);
+			modelMatrix.translate(0.5f - pivot.x, 0.5f - pivot.y, 0);
+			
+			sprite.setRegion(glyph.x, glyph.y, glyph.width, glyph.height);
+			mesh.addSprite(modelMatrix, sprite);
+			position.x += (glyph.width + pixelKerning) * textRenderer.fontSize;
+			
+			activeSprites++;
+			if (activeSprites == maxSprites)
+				flush(true);
+		}
 	}
 	
 	public void setProjectionMatrix(Matrix4 projMatrix)
@@ -120,9 +182,13 @@ public class Renderer
 		if (activeMaterial != material)
 		{
 			flush(true);
-			if (material != null)
-				setShader(material.getShader());
 			activeMaterial = material;
+			if (activeMaterial != null)
+			{
+				setShader(material.getShader());
+				activeMaterial.setMatrix("u_projTrans", projMatrix);
+				activeMaterial.setAttributes();
+			}
 		}
 	}
 	
@@ -134,9 +200,9 @@ public class Renderer
 			if (activeShader != null)
 				activeShader.end();
 				
-			if (shader != null)
-				shader.begin();
 			activeShader = shader;
+			if (activeShader != null)
+				activeShader.begin();
 		}
 	}
 	
@@ -145,12 +211,12 @@ public class Renderer
 		if (activeTexture != texture)
 		{
 			flush(true);
+			activeTexture = texture;
 			if (texture != null)
 			{
 				activeShader.getProgram().setUniformi("u_texture", 0);
-				texture.bind(0);
+				activeTexture.bind(0);
 			}
-			activeTexture = texture;
 		}
 	}
 	

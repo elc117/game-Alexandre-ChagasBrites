@@ -21,4 +21,9 @@ public abstract class EntitySystem
 	{
 		
 	}
+	
+	public void dispose()
+	{
+		
+	}
 }

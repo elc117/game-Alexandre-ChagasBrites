@@ -3,6 +3,8 @@ package com.alegz.mermaid.systems;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.alegz.mermaid.Assets;
+import com.alegz.mermaid.SoundManager;
 import com.alegz.mermaid.components.PlayerComponent;
 import com.alegz.mermaid.components.RigidbodyComponent;
 import com.alegz.mermaid.components.TransformComponent;
@@ -10,9 +12,11 @@ import com.alegz.mermaid.components.TrashComponent;
 import com.alegz.mermaid.ecs.Engine;
 import com.alegz.mermaid.ecs.Entity;
 import com.alegz.mermaid.ecs.EntitySystem;
+import com.alegz.mermaid.physics.Collider;
 import com.alegz.mermaid.rendering.material.Material;
 import com.alegz.mermaid.systems.listeners.PhysicsSystemListener;
 import com.alegz.mermaid.utils.GameUtils;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.ObjectMap;
 
@@ -40,13 +44,12 @@ public class PollutionSystem extends EntitySystem implements PhysicsSystemListen
 	
 	public void start(Engine engine) 
 	{
+		trashCount = trashEntities.size();
+		
 		transformComponents = engine.getComponentStorage(TransformComponent.class);
 		rigidbodyComponents = engine.getComponentStorage(RigidbodyComponent.class);
 		
-		engine.getSystem(PhysicsSystem.class).addSystemListener(this);
 		this.engine = engine;
-		
-		trashCount = trashEntities.size();
 	}
 	
 	public void update(float deltaTime)
@@ -85,6 +88,7 @@ public class PollutionSystem extends EntitySystem implements PhysicsSystemListen
 				pickedEntities.remove(i);
 				i--;
 				engine.setActive(entity, false);
+				SoundManager.play(Assets.SOUND_TRASH);
 			}
 			else
 				rigidbody.getBody().setLinearVelocity(velocity);
@@ -106,16 +110,28 @@ public class PollutionSystem extends EntitySystem implements PhysicsSystemListen
 		if (trashEntities.contains(entity))
 			trashEntities.remove(entity);
 	}
-
-	public void beginContact(Entity entityA, Entity entityB) 
+	
+	public void beginSensor(Entity selfEntity, Collider selfCollider, Entity otherEntity, Collider otherCollider)
 	{
-		Entity trash = null;
-		if (engine.hasComponent(entityA, TrashComponent.class))
-			trash = entityA;
-		else if (engine.hasComponent(entityB, TrashComponent.class))
-			trash = entityB;
+		if (engine.hasComponent(selfEntity, TrashComponent.class))
+		{
+			if (!pickedEntities.contains(selfEntity))
+				pickedEntities.add(selfEntity);
+		}
+	}
+
+	public void beginContact(Entity selfEntity, Collider selfCollider, Entity otherEntity, Collider otherCollider, Vector2 normal)
+	{
 		
-		if (trash != null && !pickedEntities.contains(trash))
-			pickedEntities.add(trash);
+	}
+	
+	public int getCurrentTrashCount()
+	{
+		return trashEntities.size();
+	}
+	
+	public int getTotalTrashCount()
+	{
+		return trashCount;
 	}
 }

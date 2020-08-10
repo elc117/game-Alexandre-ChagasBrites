@@ -9,16 +9,17 @@ public class BoxCollider extends Collider
 	public Vector2 size;
 	public Vector2 offset;
 	
-	public BoxCollider(Vector2 size, Vector2 offset)
+	public BoxCollider(Vector2 size, Vector2 offset, short categoryBits, short maskBits)
 	{
+		super(categoryBits, maskBits);
 		this.size = size;
 		this.offset = offset;
 	}
 	
-	protected Shape getShape()
+	protected Shape[] getShapes()
 	{
 		PolygonShape shape = new PolygonShape();
         shape.setAsBox(size.x * 0.5f, size.y * 0.5f, offset, 0);
-        return shape;
+        return new Shape[] {shape};
 	}
 }

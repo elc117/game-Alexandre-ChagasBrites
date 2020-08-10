@@ -13,9 +13,14 @@ public class PlatformerCamera
 	private Vector2 size;
 	public float nearPlane, farPlane;
 	
-	private Matrix4 projMatrix;
 	private Matrix4 screenMatrix;
-	private Matrix4 worldMatrix;
+	private Matrix4 projMatrix;
+	private Matrix4 uiMatrix;
+	private float uiWidth, uiHeight;
+	
+	private Matrix4 screenToWorldMatrix;
+	private Matrix4 screenToUIMatrix;
+	private Matrix4 worldToUIMatrix;
 	
 	public Color backgroundColor;
 	
@@ -28,9 +33,13 @@ public class PlatformerCamera
 		nearPlane = 0.1f;
 		farPlane = 10.0f;
 		
-		projMatrix = new Matrix4();
 		screenMatrix = new Matrix4();
-		worldMatrix = new Matrix4();
+		projMatrix = new Matrix4();
+		uiMatrix = new Matrix4();
+		
+		screenToWorldMatrix = new Matrix4();
+		screenToUIMatrix = new Matrix4();
+		worldToUIMatrix = new Matrix4();
 		
 		backgroundColor = Color.BLACK.cpy();
 	}
@@ -46,11 +55,12 @@ public class PlatformerCamera
 		return perspectiveMatrix;
 	}
 	
-	public void setPixelPerfectProjMatrix(int width, int height, int size)
+	public void setPixelPerfectMatrix(int width, int height, int size)
 	{
 		int cell = height / size;
 		float multiplier = (float)Math.ceil((float)cell / 16.0f);
 		setProjMatrix(width, height, height / (32.0f * multiplier));
+		setUIMatrix(width / (int)multiplier, height / (int)multiplier);
 	}
 	
 	public void setProjMatrix(float width, float height, float size)
@@ -65,16 +75,36 @@ public class PlatformerCamera
 		projMatrix.idt();
 		projMatrix.mul(perspectiveMatrix(nearPlane, farPlane));
 		projMatrix.scl(1.0f / this.size.x, 1.0f / this.size.y, 1.0f);
-		projMatrix.rotate(0, 0, 1, -rotation);
-		projMatrix.translate(-position.x, -position.y, 1);
+		projMatrix.rotate(0.0f, 0.0f, 1.0f, -rotation);
+		projMatrix.translate(-position.x, -position.y, 1.0f);
 		
 		screenMatrix.idt();
-		screenMatrix.translate(width * 0.5f, height * 0.5f, 0);
-		screenMatrix.scale(width * 0.5f, -height * 0.5f, 1);
-		screenMatrix.mul(projMatrix);
+		screenMatrix.translate(width * 0.5f, height * 0.5f, 0.0f);
+		screenMatrix.scale(width * 0.5f, -height * 0.5f, 1.0f);
 		
-		worldMatrix = screenMatrix.cpy();
-		worldMatrix.inv();
+		screenToWorldMatrix = screenMatrix.cpy();
+		screenToWorldMatrix.mul(projMatrix);
+		screenToWorldMatrix.inv();
+	}
+	
+	public void setUIMatrix(float width, float height)
+	{
+		uiWidth = width;
+		uiHeight = height;
+		
+		uiMatrix.idt();
+		uiMatrix.translate(-1.0f, -1.0f, 0.0f);
+		uiMatrix.scale(2.0f / width, 2.0f / height, 1.0f);
+		
+		screenToUIMatrix = screenMatrix.cpy();
+		screenToUIMatrix.inv();
+		
+		Matrix4 invUI = uiMatrix.cpy();
+		invUI.inv();
+		screenToUIMatrix.mulLeft(invUI);
+		
+		worldToUIMatrix = projMatrix.cpy();
+		worldToUIMatrix.mulLeft(invUI);
 	}
 	
 	public Matrix4 getProjMatrix()
@@ -82,22 +112,44 @@ public class PlatformerCamera
 		return projMatrix;
 	}
 	
+	public Matrix4 getUIMatrix()
+	{
+		return uiMatrix;
+	}
+	
 	public Vector2 getSize()
 	{
 		return size;
 	}
 	
-	public Vector2 getScreenPosition(float x, float y)
+	public float getUIWidth()
 	{
-		Vector3 position = new Vector3(x, y, 0);
-		position.mul(screenMatrix);
+		return uiWidth;
+	}
+	
+	public float getUIHeight()
+	{
+		return uiHeight;
+	}
+	
+	public Vector2 getScreenToWorldPosition(float x, float y)
+	{
+		Vector3 position = new Vector3(x, y, projMatrix.getValues()[14]);
+		position.mul(screenToWorldMatrix);
 		return new Vector2(position.x, position.y);
 	}
 	
-	public Vector2 getWorldPosition(float x, float y)
+	public Vector2 getScreenToUIPosition(float x, float y)
 	{
 		Vector3 position = new Vector3(x, y, 0);
-		position.mul(worldMatrix);
+		position.mul(screenToUIMatrix);
+		return new Vector2(position.x, position.y);
+	}
+	
+	public Vector2 getWorldToUIPosition(float x, float y)
+	{
+		Vector3 position = new Vector3(x, y, 0);
+		position.mul(worldToUIMatrix);
 		return new Vector2(position.x, position.y);
 	}
 }

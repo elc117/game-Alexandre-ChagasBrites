@@ -1,20 +1,20 @@
 package com.alegz.mermaid.components;
 
-import com.alegz.mermaid.Rect;
 import com.alegz.mermaid.Tilemap;
+import com.alegz.mermaid.ecs.Component;
 import com.alegz.mermaid.rendering.MeshCreator;
-import com.alegz.mermaid.rendering.SpriteAtlas;
+import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector2;
 
 public class TilemapRendererComponent extends RendererComponent
 {
 	public MeshCreator mesh;
-	public SpriteAtlas spriteAtlas;
-	
+	public TextureAtlas spriteAtlas;
 	private Tilemap tilemap;
 	
-	public TilemapRendererComponent(Tilemap tilemap, SpriteAtlas spriteAtlas)
+	public TilemapRendererComponent(Tilemap tilemap, TextureAtlas spriteAtlas)
 	{
 		this.tilemap = tilemap;
 		this.spriteAtlas = spriteAtlas;
@@ -54,52 +54,57 @@ public class TilemapRendererComponent extends RendererComponent
 				modelMatrix.translate(position.x, position.y, 0);
 				modelMatrix.translate(0.5f - pivot.x, 0.5f - pivot.y, 0);
 				
-				Rect rect = spriteAtlas.getRect(0, 0);
+				TextureRegion region = spriteAtlas.findRegion("tile0");
 				switch(tilemap.getTile(x, y))
 				{
 				case 1:
-					rect = spriteAtlas.getRect(1, 1);
+					region = spriteAtlas.findRegion("tile6");
 					if (tilemap.getTile(x + 1, y) == 1 && 
 						tilemap.getTile(x, y + 1) == 1 &&
 						tilemap.getTile(x + 1, y + 1) != 1)
-						rect = spriteAtlas.getRect(4, 1);
+						region = spriteAtlas.findRegion("tile9");
 					else if (tilemap.getTile(x + 1, y) == 1 && 
 							 tilemap.getTile(x, y - 1) == 1 &&
 							 tilemap.getTile(x + 1, y - 1) != 1)
-						rect = spriteAtlas.getRect(4, 0);
+						region = spriteAtlas.findRegion("tile4");
 					else if (tilemap.getTile(x - 1, y) == 1 && 
 							 tilemap.getTile(x, y + 1) == 1 &&
 							 tilemap.getTile(x - 1, y + 1) != 1)
-						rect = spriteAtlas.getRect(3, 1);
+						region = spriteAtlas.findRegion("tile8");
 					else if (tilemap.getTile(x - 1, y) == 1 && 
 							 tilemap.getTile(x, y - 1) == 1 &&
 							 tilemap.getTile(x - 1, y - 1) != 1)
-						rect = spriteAtlas.getRect(3, 0);
+						region = spriteAtlas.findRegion("tile3");
 					else if (tilemap.getTile(x + 1, y) != 1 && x != tilemap.getWidth() - 1 && 
 						tilemap.getTile(x, y + 1) != 1)
-						rect = spriteAtlas.getRect(2, 2);
+						region = spriteAtlas.findRegion("tile12");
 					else if (tilemap.getTile(x + 1, y) != 1 && x != tilemap.getWidth() - 1 && 
 							 tilemap.getTile(x, y - 1) != 1)
-						rect = spriteAtlas.getRect(2, 0);
+						region = spriteAtlas.findRegion("tile2");
 					else if (tilemap.getTile(x + 1, y) != 1 && x != tilemap.getWidth() - 1)
-						rect = spriteAtlas.getRect(2, 1);
+						region = spriteAtlas.findRegion("tile7");
 					else if (tilemap.getTile(x - 1, y) != 1 && x != 0 && 
 							 tilemap.getTile(x, y + 1) != 1)
-						rect = spriteAtlas.getRect(0, 2);
+						region = spriteAtlas.findRegion("tile10");
 					else if (tilemap.getTile(x - 1, y) != 1 && x != 0 &&
 							 tilemap.getTile(x, y - 1) != 1)
-						rect = spriteAtlas.getRect(0, 0);
+						region = spriteAtlas.findRegion("tile0");
 					else if (tilemap.getTile(x - 1, y) != 1 && x != 0)
-						rect = spriteAtlas.getRect(0, 1);
+						region = spriteAtlas.findRegion("tile5");
 					else if (tilemap.getTile(x, y + 1) != 1 && y != tilemap.getHeight() - 1)
-						rect = spriteAtlas.getRect(1, 2);
+						region = spriteAtlas.findRegion("tile11");
 					else if (tilemap.getTile(x, y - 1) != 1)
-						rect = spriteAtlas.getRect(1, 0);
-					mesh.addSprite(modelMatrix, rect);
+						region = spriteAtlas.findRegion("tile1");
+					mesh.addSprite(modelMatrix, region);
 					break;
 				}
 			}
 		}
 		mesh.end();
+	}
+	
+	public Class<? extends Component> getComponentClass()
+	{
+		return TilemapRendererComponent.class;
 	}
 }

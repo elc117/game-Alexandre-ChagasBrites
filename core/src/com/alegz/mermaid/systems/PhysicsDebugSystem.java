@@ -24,4 +24,9 @@ public class PhysicsDebugSystem extends EntitySystem
     {
         debugRenderer.render(world, camera.getProjMatrix());
     }
+    
+    public void dispose()
+    {
+    	debugRenderer.dispose();
+    }
 }

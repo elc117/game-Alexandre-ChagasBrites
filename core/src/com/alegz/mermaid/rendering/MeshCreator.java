@@ -1,10 +1,10 @@
 package com.alegz.mermaid.rendering;
 
-import com.alegz.mermaid.Rect;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Mesh;
 import com.badlogic.gdx.graphics.VertexAttribute;
 import com.badlogic.gdx.graphics.VertexAttributes;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
@@ -39,7 +39,12 @@ public class MeshCreator
 		return mesh;
 	}
 	
-	public void addSprite(Matrix4 modelMatrix, Rect rect)
+	public void addSprite(Matrix4 modelMatrix, TextureRegion region)
+	{
+		addSprite(modelMatrix, region.getU(), region.getV(), region.getU2(), region.getV2());
+	}
+	
+	public void addSprite(Matrix4 modelMatrix, float u, float v, float u2, float v2)
 	{
 		Vector3[] quad = new Vector3[] {
 			new Vector3(-0.5f, -0.5f, 0).mul(modelMatrix),
@@ -58,26 +63,26 @@ public class MeshCreator
 		vertices[activeVertices++] = quad[0].x;
 		vertices[activeVertices++] = quad[0].y;
 		vertices[activeVertices++] = quad[0].z;
-		vertices[activeVertices++] = rect.x;
-		vertices[activeVertices++] = rect.y + rect.height;
+		vertices[activeVertices++] = u;
+		vertices[activeVertices++] = v2;
 		
 		vertices[activeVertices++] = quad[1].x;
 		vertices[activeVertices++] = quad[1].y;
 		vertices[activeVertices++] = quad[1].z;
-		vertices[activeVertices++] = rect.x + rect.width;
-		vertices[activeVertices++] = rect.y + rect.height;
+		vertices[activeVertices++] = u2;
+		vertices[activeVertices++] = v2;
 		
 		vertices[activeVertices++] = quad[2].x;
 		vertices[activeVertices++] = quad[2].y;
 		vertices[activeVertices++] = quad[2].z;
-		vertices[activeVertices++] = rect.x;
-		vertices[activeVertices++] = rect.y;
+		vertices[activeVertices++] = u;
+		vertices[activeVertices++] = v;
 		
 		vertices[activeVertices++] = quad[3].x;
 		vertices[activeVertices++] = quad[3].y;
 		vertices[activeVertices++] = quad[3].z;
-		vertices[activeVertices++] = rect.x + rect.width;
-		vertices[activeVertices++] = rect.y;
+		vertices[activeVertices++] = u2;
+		vertices[activeVertices++] = v;
 	}
 	
 	public void begin()

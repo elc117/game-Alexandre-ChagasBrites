@@ -7,15 +7,16 @@ public class CircleCollider extends Collider
 {
 	public float radius;
 	
-	public CircleCollider(float radius)
+	public CircleCollider(float radius, short categoryBits, short maskBits)
 	{
+		super(categoryBits, maskBits);
 		this.radius = radius;
 	}
 	
-	protected Shape getShape()
+	protected Shape[] getShapes()
 	{
 		CircleShape shape = new CircleShape();
 		shape.setRadius(radius);
-		return shape;
+		return new Shape[] {shape};
 	}
 }

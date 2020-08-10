@@ -9,6 +9,7 @@ import com.alegz.mermaid.ecs.Engine;
 import com.alegz.mermaid.ecs.Entity;
 import com.alegz.mermaid.ecs.EntitySystem;
 import com.alegz.mermaid.ecs.EntitySystemNotifier;
+import com.alegz.mermaid.physics.Collider;
 import com.alegz.mermaid.systems.listeners.PhysicsSystemListener;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
@@ -38,10 +39,6 @@ public class PhysicsSystem extends EntitySystem implements EntitySystemNotifier<
 	public final static short CATEGORY_TRASH = 1 << 1;
 	public final static short CATEGORY_WORLD = 1 << 2;
 	
-	public final static short MASK_PLAYER = CATEGORY_TRASH | CATEGORY_WORLD;
-	public final static short MASK_TRASH = CATEGORY_PLAYER;
-	public final static short MASK_WORLD = CATEGORY_PLAYER | CATEGORY_WORLD;
-	
 	public PhysicsSystem()
 	{
 		Vector2 gravity = new Vector2(0, 0);
@@ -62,7 +59,7 @@ public class PhysicsSystem extends EntitySystem implements EntitySystemNotifier<
 	public void update(float deltaTime)
 	{
         accumulator += deltaTime;
-        if(accumulator >= timeStep) 
+        while (accumulator >= timeStep)
         {
             world.step(timeStep, 6, 2);
             accumulator -= timeStep;
@@ -74,8 +71,9 @@ public class PhysicsSystem extends EntitySystem implements EntitySystemNotifier<
             RigidbodyComponent rigidbody = rigidbodyComponents.get(entity);
             
             Vector2 position = rigidbody.getBody().getPosition();
-            transform.position.x = position.x;
-            transform.position.y = position.y;
+            Vector2 velocity = rigidbody.getBody().getLinearVelocity();
+            transform.position.x = position.x + velocity.x * accumulator;
+            transform.position.y = position.y + velocity.y * accumulator;
             if (!rigidbody.getBody().isFixedRotation())
             	transform.rotation = rigidbody.getBody().getAngle() * MathUtils.radDeg;
         }
@@ -113,8 +111,13 @@ public class PhysicsSystem extends EntitySystem implements EntitySystemNotifier<
 	{
 		Entity entityA = (Entity)contact.getFixtureA().getBody().getUserData();
 		Entity entityB = (Entity)contact.getFixtureB().getBody().getUserData();
+		Collider colliderA = (Collider)contact.getFixtureA().getUserData();
+		Collider colliderB = (Collider)contact.getFixtureB().getUserData();
 		for (PhysicsSystemListener listener : physicsListeners)
-			listener.beginContact(entityA, entityB);
+		{
+			listener.beginSensor(entityA, colliderA, entityB, colliderB);
+			listener.beginSensor(entityB, colliderB, entityA, colliderA);
+		}
 	}
 
 	public void endContact(Contact contact) 
@@ -124,11 +127,25 @@ public class PhysicsSystem extends EntitySystem implements EntitySystemNotifier<
 
 	public void preSolve(Contact contact, Manifold oldManifold) 
 	{
-		
+		Entity entityA = (Entity)contact.getFixtureA().getBody().getUserData();
+		Entity entityB = (Entity)contact.getFixtureB().getBody().getUserData();
+		Collider colliderA = (Collider)contact.getFixtureA().getUserData();
+		Collider colliderB = (Collider)contact.getFixtureB().getUserData();
+		Vector2 normal = contact.getWorldManifold().getNormal();
+		for (PhysicsSystemListener listener : physicsListeners)
+		{
+			listener.beginContact(entityA, colliderA, entityB, colliderB, normal);
+			listener.beginContact(entityB, colliderB, entityA, colliderA, normal);
+		}
 	}
 
 	public void postSolve(Contact contact, ContactImpulse impulse) 
 	{
 		
+	}
+	
+	public void dispose()
+	{
+		world.dispose();
 	}
 }

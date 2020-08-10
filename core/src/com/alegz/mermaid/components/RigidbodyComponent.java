@@ -4,25 +4,18 @@ import com.alegz.mermaid.physics.Collider;
 import com.alegz.mermaid.ecs.Component;
 import com.alegz.mermaid.ecs.Entity;
 import com.badlogic.gdx.math.MathUtils;
-import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
-import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.physics.box2d.World;
 
 public class RigidbodyComponent implements Component
 {
 	private Body body;
 	
-	private short categoryBits;
-	private short maskBits;
-	
-	public RigidbodyComponent(short categoryBits, short maskBits)
+	public RigidbodyComponent()
 	{
 		body = null;
-		this.categoryBits = categoryBits;
-		this.maskBits = maskBits;
 	}
 	
 	public void create(World world, Entity entity, TransformComponent transform, BodyType bodyType)
@@ -37,11 +30,16 @@ public class RigidbodyComponent implements Component
 	
 	public void addCollider(Collider collider)
 	{
-		collider.attachToBody(body, categoryBits, maskBits);
+		collider.attachToBody(body);
 	}
 	
 	public Body getBody()
 	{
 		return body;
+	}
+	
+	public Class<? extends Component> getComponentClass()
+	{
+		return RigidbodyComponent.class;
 	}
 }

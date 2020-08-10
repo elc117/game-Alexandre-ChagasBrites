@@ -17,6 +17,6 @@ public class GameUtils
 	
 	public static float triangleWave(float t)
 	{
-		return ((float)Math.floor(t) + 0.5f - t) * 2.0f;
+		return Math.abs((float)Math.floor(t) + 0.5f - t) * 2.0f;
 	}
 }

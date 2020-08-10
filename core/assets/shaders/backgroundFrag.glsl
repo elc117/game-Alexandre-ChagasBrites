@@ -8,7 +8,6 @@
 varying vec2 v_texCoords;
 
 uniform sampler2D u_texture;
-uniform LOWP vec4 u_color;
 
 uniform LOWP vec4 u_topColor;
 uniform LOWP vec4 u_bottomColor;
@@ -17,7 +16,7 @@ uniform float u_farPlane;
 
 void main()
 {
-	gl_FragColor = u_color * texture2D(u_texture, v_texCoords);
+	gl_FragColor = texture2D(u_texture, v_texCoords);
 	if (gl_FragColor.a <= 0.0)
 		discard;
 

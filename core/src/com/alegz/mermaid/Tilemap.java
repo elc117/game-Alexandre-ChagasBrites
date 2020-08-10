@@ -3,32 +3,22 @@ package com.alegz.mermaid;
 import java.util.ArrayList;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.Json;
 
 public class Tilemap 
 {
 	private byte[] map;
 	private int width, height;
 	private Vector2 offset;
+	private int trashCount;
 	
-	public Tilemap(String path)
+	public Tilemap()
 	{
-		FileHandle file = Gdx.files.internal(path);
-		//System.out.println(file.exists());
-		
-		byte[] info = new byte[(int)file.length()];
-		file.readBytes(info, 0, (int)file.length());
-		
-		width = (info[0] << 0) | (info[1] << 8) | (info[2] << 16) | (info[3] << 25);
-		height = (info[4] << 0) | (info[5] << 8) | (info[6] << 16) | (info[7] << 25);
-		
-		map = new byte[width * height];
-		for (int i = 0; i < width * height; i++)
-			map[i] = info[8 + i];
-		
-		offset = new Vector2(width * 0.5f, 2.0f);
+		map = null;
+		width = height = 0;
+		offset = new Vector2();
 	}
 	
 	public Tilemap(int width, int height)
@@ -40,12 +30,13 @@ public class Tilemap
 		for (int i = 0; i < width * height; i++)
 			map[i] = 0;
 		
-		offset = new Vector2(width * 0.5f, 2.0f);
-		
 		for (int i = 0; i < width; i++)
 			map[i + (height - 1) * width] = 1;
 		for (int i = 0; i < height; i++)
 			map[i * width] = map[width - 1 + i * width] = 1;
+		
+		offset = new Vector2(width * 0.5f, 2.0f);
+		trashCount = 0;
 	}
 	
 	public byte getTile(int x, int y)
@@ -59,7 +50,6 @@ public class Tilemap
 	{
 		int x = MathUtils.floor(pos.x + offset.x);
 		int y = MathUtils.floor(offset.y - pos.y);
-		
 		if (x < 1 || x >= width - 1 || y < 0 || y >= height - 1)
 			return;
 		map[x + y * width] = value;
@@ -75,24 +65,17 @@ public class Tilemap
 		return height;
 	}
 	
+	public int getTrashCount()
+	{
+		return trashCount;
+	}
+	
 	public Vector2 getWorldPos(int x, int y)
 	{
 		return new Vector2(x - offset.x, offset.y - y);
 	}
 	
-	public void save(String path)
-	{
-		FileHandle file = Gdx.files.local(path);
-		System.out.println(file.path());
-		byte[] info = new byte[] {
-			(byte)(width >> 0), (byte)(width >> 8), (byte)(width >> 16), (byte)(width >> 24),
-			(byte)(height >> 0), (byte)(height >> 8), (byte)(height >> 16), (byte)(height >> 24)
-		};
-		file.writeBytes(info, false);
-		file.writeBytes(map, true);
-	}
-	
-	public Vector2[] getVertices()
+	public Vector2[][] getVertices()
 	{
 		class Line
 		{
@@ -147,20 +130,22 @@ public class Tilemap
 			}
 		}
 		
-		ArrayList<Vector2> vertices = new ArrayList<Vector2>();
+		ArrayList<ArrayList<Vector2>> layers = new ArrayList<>();
+		ArrayList<Vector2> vertices = null;
 		Line currentLine = null;
-		int teste = 0;
-		while (lines.size() > 0 && teste < 1000)
+		while (lines.size() > 0)
 		{
 			if (currentLine == null)
+			{
+				vertices = new ArrayList<>();
+				layers.add(vertices);
 				currentLine = lines.get(0);
+			}
 			lines.remove(currentLine);
 			
 			int x = currentLine.start % (width + 1);
 			int y = currentLine.start / (width + 1);
 			vertices.add(getWorldPos(x, y));
-			
-			//System.out.println(currentLine.start + " - " + currentLine.end + " : " + x + ", " + y);
 			
 			if (lines.size() == 0)
 				break;
@@ -177,11 +162,33 @@ public class Tilemap
 					break;
 				}
 			}
-			teste++;
 		}
 		
-		Vector2[] tileVertices = new Vector2[vertices.size()];
-		vertices.toArray(tileVertices);
-		return tileVertices;
+		vertices = new ArrayList<>();
+		vertices.add(getWorldPos(0, -height));
+		vertices.add(getWorldPos(0, height));
+		vertices.add(getWorldPos(width, height));
+		vertices.add(getWorldPos(width, -height));
+		layers.add(vertices);
+		
+		Vector2[][] tileLayers = new Vector2[layers.size()][];
+		for (int i = 0; i < layers.size(); i++)
+		{	
+			tileLayers[i] = new Vector2[layers.get(i).size()];
+			layers.get(i).toArray(tileLayers[i]);
+		}
+		return tileLayers;
+	}
+	
+	public static Tilemap load(String path)
+	{
+		Json json = new Json();
+		return json.fromJson(Tilemap.class, Gdx.files.internal(path));
+	}
+	
+	public void save(String path)
+	{
+		Json json = new Json();
+		json.toJson(this, Tilemap.class, Gdx.files.local(path));
 	}
 }

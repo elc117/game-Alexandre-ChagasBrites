@@ -14,6 +14,7 @@ public class Engine
 	private List<Entity> activeEntities;
 	private List<Entity> inactiveEntities;
 	private List<Entity> entityQueue;
+	private boolean updating;
 	
 	public Engine()
 	{
@@ -24,6 +25,7 @@ public class Engine
 		activeEntities = new ArrayList<>();
 		inactiveEntities = new ArrayList<>();
 		entityQueue = new ArrayList<>();
+		updating = false;
 	}
 	
 	public void start()
@@ -34,29 +36,15 @@ public class Engine
 	
 	public void update(float deltaTime)
 	{
+		updating = true;
 		entityQueue.clear();
+		
 		for (EntitySystem system : sortedSystems)
 			system.update(deltaTime);
 		
 		for (Entity entity : entityQueue)
-		{
-			if (inactiveEntities.contains(entity))
-			{
-				activeEntities.add(entity);
-				inactiveEntities.remove(entity);
-				
-				for (EntitySystem system : systems.values())
-					system.entityAdded(this, entity);
-			}
-			else if (activeEntities.contains(entity))
-			{
-				activeEntities.remove(entity);
-				inactiveEntities.add(entity);
-				
-				for (EntitySystem system : systems.values())
-					system.entityRemoved(this, entity);
-			}
-		}
+			setActiveInternal(entity, inactiveEntities.contains(entity));
+		updating = false;
 	}
 	
 	public void addSystem(EntitySystem system)
@@ -73,11 +61,18 @@ public class Engine
 	
 	public void addComponent(Entity entity, Component component)
 	{
-		ObjectMap<Entity, Component> componentStorage = componentsStorage.get(component.getClass());
+		addComponentInternal(entity, component, component.getClass());
+		if (component.getClass() != component.getComponentClass())
+			addComponentInternal(entity, component, component.getComponentClass());
+	}
+	
+	private void addComponentInternal(Entity entity, Component component, Class<? extends Component> componentType)
+	{
+		ObjectMap<Entity, Component> componentStorage = componentsStorage.get(componentType);
 		if (componentStorage == null)
 		{
 			componentStorage = new ObjectMap<Entity, Component>();
-			componentsStorage.put(component.getClass(), componentStorage);
+			componentsStorage.put(componentType, componentStorage);
 		}
 		componentStorage.put(entity, component);
 	}
@@ -120,11 +115,48 @@ public class Engine
 	
 	public void setActive(Entity entity, boolean active)
 	{
+		if (!updating)
+		{
+			setActiveInternal(entity, active);
+			return;
+		}
+		
 		if (entityQueue.contains(entity))
 			return;
 		
 		if (active && inactiveEntities.contains(entity) ||
 			!active && activeEntities.contains(entity))
 			entityQueue.add(entity);
+	}
+	
+	private void setActiveInternal(Entity entity, boolean active)
+	{
+		if (active && inactiveEntities.contains(entity))
+		{
+			activeEntities.add(entity);
+			inactiveEntities.remove(entity);
+			
+			for (EntitySystem system : systems.values())
+				system.entityAdded(this, entity);
+		}
+		else if (!active && activeEntities.contains(entity))
+		{
+			activeEntities.remove(entity);
+			inactiveEntities.add(entity);
+			
+			for (EntitySystem system : systems.values())
+				system.entityRemoved(this, entity);
+		}
+	}
+	
+	public boolean isActive(Entity entity)
+	{
+		return activeEntities.contains(entity);
+	}
+	
+	public void dispose()
+	{
+		for (EntitySystem system : systems.values())
+			system.dispose();
 	}
 }
