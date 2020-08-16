@@ -6,9 +6,4 @@ import com.badlogic.gdx.graphics.Mesh;
 public class MeshRendererComponent extends RendererComponent
 {
 	public Mesh mesh = null;
-	
-	public Class<? extends Component> getComponentClass()
-	{
-		return MeshRendererComponent.class;
-	}
 }

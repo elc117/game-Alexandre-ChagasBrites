@@ -20,13 +20,13 @@ public class Assets
 	private HashMap<String, TextureRegion> sprites;
 	private HashMap<String, TextureAtlas> spritesAtlas;
 	private HashMap<String, Material> materials;
+	private HashMap<String, FishType> fishTypes;
 	private HashMap<String, Sound> sounds;
 	private HashMap<String, Tilemap> tilemaps;
 	private Music music;
 	private PixelFont font;
 	
-	private static final String TEXTURE_PLAYER = "textures/player.png";
-	private static final String TEXTURE_TRASH = "textures/trash.png";
+	private static final String TEXTURE_ENTITIES = "textures/entities.png";
 	private static final String TEXTURE_TILE = "textures/tile.png";
 	private static final String TEXTURE_PLANTS = "textures/plants.png";
 	private static final String TEXTURE_BACKGROUND0 = "textures/background0.png";
@@ -47,6 +47,7 @@ public class Assets
 	public static final String SPRITE_BACKGROUND2 = "background2";
 	public static final String SPRITE_BACKGROUND3 = "background3";
 	
+	public static final String SPRITE_ATLAS_FISH = "fish";
 	public static final String SPRITE_ATLAS_TRASH = "trash";
 	public static final String SPRITE_ATLAS_TILE = "tile";
 	public static final String SPRITE_ATLAS_PLANTS = "seaweed";
@@ -57,6 +58,8 @@ public class Assets
 	public static final String MATERIAL_WATER = "water";
 	public static final String MATERIAL_BACKGROUND = "background";
 	public static final String MATERIAL_UI = "ui";
+	
+	public static final String[] FISH_TYPES = new String[] { "type0", "type1", "type2", "type3"};
 	
 	public static final String SOUND_TRASH = "sounds/trash.ogg";
 	public static final String SOUND_DASH = "sounds/dash.ogg";
@@ -77,14 +80,14 @@ public class Assets
 		sprites = new HashMap<>();
 		spritesAtlas = new HashMap<>();
 		materials = new HashMap<>();
+		fishTypes = new HashMap<>();
 		sounds = new HashMap<>();
 		tilemaps = new HashMap<>();
 	}
 	
 	public void load()
 	{
-		loadTexture(TEXTURE_PLAYER, TextureFilter.Nearest);
-		loadTexture(TEXTURE_TRASH, TextureFilter.Nearest);
+		loadTexture(TEXTURE_ENTITIES, TextureFilter.Nearest);
 		loadTexture(TEXTURE_TILE, TextureFilter.Nearest);
 		loadTexture(TEXTURE_PLANTS, TextureFilter.Nearest);
 		loadTexture(TEXTURE_BACKGROUND0, TextureFilter.Linear);
@@ -99,7 +102,7 @@ public class Assets
 		loadShader(SHADER_BACKGROUND, true);
 		loadShader(SHADER_UI, true);
 		
-		loadSprite(SPRITE_PLAYER, TEXTURE_PLAYER, 0, 0, 24, 24);
+		loadSprite(SPRITE_PLAYER, TEXTURE_ENTITIES, 0, 0, 24, 24);
 		loadSprite(SPRITE_BACKGROUND0, TEXTURE_BACKGROUND0, 0, 0, 512, 512);
 		loadSprite(SPRITE_BACKGROUND1, TEXTURE_BACKGROUND1, 0, 0, 512, 512);
 		loadSprite(SPRITE_BACKGROUND2, TEXTURE_BACKGROUND2, 0, 0, 512, 512);
@@ -107,13 +110,22 @@ public class Assets
 		
 		{
 			TextureAtlas atlas = new TextureAtlas();
-			Texture texture = textures.get(TEXTURE_TRASH);
-			atlas.addRegion("trash0", new TextureRegion(texture, 0, 0, 16, 16));
-			atlas.addRegion("trash1", new TextureRegion(texture,16, 0, 16, 16));
-			atlas.addRegion("trash2", new TextureRegion(texture,32, 0, 16, 16));
-			atlas.addRegion("trash3", new TextureRegion(texture, 0,16, 16, 16));
-			atlas.addRegion("trash4", new TextureRegion(texture,16,16, 16, 16));
-			atlas.addRegion("trash5", new TextureRegion(texture,32,16, 16, 16));
+			Texture texture = textures.get(TEXTURE_ENTITIES);
+			atlas.addRegion("fish0", new TextureRegion(texture, 32,  0, 16, 16));
+			atlas.addRegion("fish1", new TextureRegion(texture, 32, 16, 16, 16));
+			atlas.addRegion("fish2", new TextureRegion(texture, 48,  0, 16, 16));
+			atlas.addRegion("fish3", new TextureRegion(texture, 48, 16, 16, 16));
+			loadSpriteAtlas(SPRITE_ATLAS_FISH, atlas);
+		}
+		{
+			TextureAtlas atlas = new TextureAtlas();
+			Texture texture = textures.get(TEXTURE_ENTITIES);
+			atlas.addRegion("trash0", new TextureRegion(texture,16,32, 16, 16));
+			atlas.addRegion("trash1", new TextureRegion(texture,16,32, 16, 16));
+			atlas.addRegion("trash2", new TextureRegion(texture,48,32, 16, 16));
+			atlas.addRegion("trash3", new TextureRegion(texture,16,48, 16, 16));
+			atlas.addRegion("trash4", new TextureRegion(texture,32,48, 16, 16));
+			atlas.addRegion("trash5", new TextureRegion(texture,48,48, 16, 16));
 			loadSpriteAtlas(SPRITE_ATLAS_TRASH, atlas);
 		}
 		{
@@ -141,6 +153,8 @@ public class Assets
 			atlas.addRegion("plant1", new TextureRegion(texture,16, 0, 16, 32));
 			atlas.addRegion("plant2", new TextureRegion(texture,32, 0, 16, 32));
 			atlas.addRegion("plant3", new TextureRegion(texture,48, 0, 16, 32));
+			atlas.addRegion("plant4", new TextureRegion(texture,64, 0, 16, 32));
+			atlas.addRegion("plant5", new TextureRegion(texture,80, 0, 16, 32));
 			loadSpriteAtlas(SPRITE_ATLAS_PLANTS, atlas);
 		}
 		{
@@ -159,6 +173,14 @@ public class Assets
 		loadMaterial(MATERIAL_WATER, SHADER_WATER);
 		loadMaterial(MATERIAL_BACKGROUND, SHADER_BACKGROUND);
 		loadMaterial(MATERIAL_UI, SHADER_UI);
+		
+		{
+			TextureAtlas atlas = getSpriteAtlas(SPRITE_ATLAS_FISH);
+			loadFishType(FISH_TYPES[0], new FishType(5, 2, atlas.getRegions().get(0), 20, 0.05f, 10));
+			loadFishType(FISH_TYPES[1], new FishType(5, 2.5f, atlas.getRegions().get(1), 20, 0.075f, 10));
+			loadFishType(FISH_TYPES[2], new FishType(5, 1.5f, atlas.getRegions().get(2), 20, 0.025f, 10));
+			loadFishType(FISH_TYPES[3], new FishType(5, 2, atlas.getRegions().get(3), 20, 0.05f, 10));
+		}
 		
 		loadSound(SOUND_TRASH);
 		loadSound(SOUND_DASH);
@@ -194,6 +216,11 @@ public class Assets
 	public Material getMaterial(String name)
 	{
 		return materials.get(name);
+	}
+	
+	public FishType getFishType(String name)
+	{
+		return fishTypes.get(name);
 	}
 	
 	public Sound getSound(String name)
@@ -249,6 +276,11 @@ public class Assets
 		materials.put(key,  new Material(getShader(path)));
 	}
 	
+	private void loadFishType(String key, FishType fishType)
+	{
+		fishTypes.put(key, fishType);
+	}
+	
 	private void loadSound(String path)
 	{
 		sounds.put(path, Gdx.audio.newSound(Gdx.files.internal(path)));
@@ -264,7 +296,7 @@ public class Assets
 		for (Texture texture : textures.values())
 			texture.dispose();
 		for (Shader shader : shaders.values())
-			shader.getProgram().dispose();
+			shader.dispose();
 		for (Sound sound : sounds.values())
 			sound.dispose();
 		music.dispose();

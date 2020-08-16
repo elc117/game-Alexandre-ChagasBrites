@@ -36,13 +36,13 @@ public class PhysicsSystem extends EntitySystem implements EntitySystemNotifier<
 	private List<PhysicsSystemListener> physicsListeners;
 	
 	public final static short CATEGORY_PLAYER = 1 << 0;
-	public final static short CATEGORY_TRASH = 1 << 1;
-	public final static short CATEGORY_WORLD = 1 << 2;
+	public final static short CATEGORY_FISH   = 1 << 1;
+	public final static short CATEGORY_TRASH  = 1 << 2;
+	public final static short CATEGORY_WORLD  = 1 << 3;
 	
 	public PhysicsSystem()
 	{
-		Vector2 gravity = new Vector2(0, 0);
-		world = new World(gravity, true);
+		world = new World(new Vector2(), true);
 		world.setContactListener(this);
 		
 		accumulator = 0;
@@ -59,21 +59,26 @@ public class PhysicsSystem extends EntitySystem implements EntitySystemNotifier<
 	public void update(float deltaTime)
 	{
         accumulator += deltaTime;
-        while (accumulator >= timeStep)
+    	while (accumulator >= timeStep)
         {
+    		for (Entity entity : entities) 
+            {
+                RigidbodyComponent rigidbody = rigidbodyComponents.get(entity);
+                rigidbody.oldPosition.x = rigidbody.getBody().getPosition().x;
+                rigidbody.oldPosition.y = rigidbody.getBody().getPosition().y;
+            }
+    		
             world.step(timeStep, 6, 2);
             accumulator -= timeStep;
         }
         
+        float t = accumulator / timeStep;
         for (Entity entity : entities) 
         {
             TransformComponent transform = transformComponents.get(entity);
             RigidbodyComponent rigidbody = rigidbodyComponents.get(entity);
             
-            Vector2 position = rigidbody.getBody().getPosition();
-            Vector2 velocity = rigidbody.getBody().getLinearVelocity();
-            transform.position.x = position.x + velocity.x * accumulator;
-            transform.position.y = position.y + velocity.y * accumulator;
+            transform.position = rigidbody.oldPosition.cpy().lerp(rigidbody.getBody().getPosition(), t);
             if (!rigidbody.getBody().isFixedRotation())
             	transform.rotation = rigidbody.getBody().getAngle() * MathUtils.radDeg;
         }
@@ -82,9 +87,13 @@ public class PhysicsSystem extends EntitySystem implements EntitySystemNotifier<
 	public void entityAdded(Engine engine, Entity entity)
 	{
 		if (engine.hasComponent(entity, TransformComponent.class) &&
-			engine.hasComponent(entity, RigidbodyComponent.class) &&
-			engine.getComponent(entity, RigidbodyComponent.class).getBody().getType() != BodyType.StaticBody)
-			entities.add(entity);
+			engine.hasComponent(entity, RigidbodyComponent.class))
+		{
+			engine.getComponent(entity, RigidbodyComponent.class).getBody().setActive(true);
+			if (engine.getComponent(entity, RigidbodyComponent.class).getBody().getType() != BodyType.StaticBody)
+				entities.add(entity);
+		}
+			
 	}
 	
 	public void entityRemoved(Engine engine, Entity entity)

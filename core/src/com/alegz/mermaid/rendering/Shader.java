@@ -36,4 +36,9 @@ public class Shader
 	{
 		return program;
 	}
+	
+	public void dispose()
+	{
+		program.dispose();
+	}
 }

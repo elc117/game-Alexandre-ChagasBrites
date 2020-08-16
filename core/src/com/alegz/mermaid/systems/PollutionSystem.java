@@ -24,8 +24,10 @@ public class PollutionSystem extends EntitySystem implements PhysicsSystemListen
 {
 	private Material waterMaterial;
 	private int trashCount;
+	private float pollution;
 	
 	private Entity playerEntity;
+	private PlayerComponent playerComponent;
 	private List<Entity> trashEntities;
 	private List<Entity> pickedEntities;
 	
@@ -45,6 +47,7 @@ public class PollutionSystem extends EntitySystem implements PhysicsSystemListen
 	public void start(Engine engine) 
 	{
 		trashCount = trashEntities.size();
+		pollution = 0;
 		
 		transformComponents = engine.getComponentStorage(TransformComponent.class);
 		rigidbodyComponents = engine.getComponentStorage(RigidbodyComponent.class);
@@ -56,33 +59,37 @@ public class PollutionSystem extends EntitySystem implements PhysicsSystemListen
 	{
 		float pollution = 1.0f - (float)trashEntities.size() / trashCount;
 		pollution = 1.0f - pollution * pollution;
+		this.pollution = pollution;
 		waterMaterial.setFloat("u_pollution", pollution);
 		
 		TransformComponent player = transformComponents.get(playerEntity);
 		for (int i = 0; i < pickedEntities.size(); i++)
 		{
 			Entity entity = pickedEntities.get(i);
+			TransformComponent transform = transformComponents.get(entity);
 			RigidbodyComponent rigidbody = rigidbodyComponents.get(entity);
 			
 			Vector2 velocity = player.position.cpy();
 			velocity.sub(rigidbody.getBody().getPosition());
 			
 			float distSquared = velocity.len2();
-			float speed = 1.0f / distSquared;
-			speed *= GameUtils.smoothstep(4.0f, 1.0f, distSquared);
+			float maxDistSquared = 1.0f + playerComponent.trashRadius;
+			maxDistSquared *= maxDistSquared;
+			float speed = maxDistSquared / distSquared;
+			speed *= GameUtils.smoothstep(maxDistSquared, 1.0f, distSquared);
 			velocity.setLength(speed);
 			
 			Vector2 nextPos = rigidbody.getBody().getPosition();
 			nextPos.mulAdd(velocity, deltaTime);
 			nextPos.sub(player.position);
 			
-			if (distSquared > 4.0f)
+			if (distSquared > maxDistSquared + 1.0f && transform.position.y < 0)
 			{
 				rigidbody.getBody().setLinearVelocity(Vector2.Zero);
 				pickedEntities.remove(i);
 				i--;
 			}
-			else if (nextPos.dot(velocity) >= 0)
+			else if (nextPos.dot(velocity) >= 0 && velocity.len2() > 0)
 			{
 				rigidbody.getBody().setLinearVelocity(Vector2.Zero);
 				pickedEntities.remove(i);
@@ -102,7 +109,10 @@ public class PollutionSystem extends EntitySystem implements PhysicsSystemListen
 			trashEntities.add(entity);
 		else if (engine.hasComponent(entity, TransformComponent.class) &&
 			engine.hasComponent(entity, PlayerComponent.class))
+		{
 			playerEntity = entity;
+			playerComponent = engine.getComponent(entity, PlayerComponent.class);
+		}
 	}
 	
 	public void entityRemoved(Engine engine, Entity entity)
@@ -123,6 +133,11 @@ public class PollutionSystem extends EntitySystem implements PhysicsSystemListen
 	public void beginContact(Entity selfEntity, Collider selfCollider, Entity otherEntity, Collider otherCollider, Vector2 normal)
 	{
 		
+	}
+	
+	public float getPollution()
+	{
+		return pollution;
 	}
 	
 	public int getCurrentTrashCount()

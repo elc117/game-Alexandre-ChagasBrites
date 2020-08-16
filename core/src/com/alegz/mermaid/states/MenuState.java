@@ -9,6 +9,7 @@ import com.alegz.mermaid.Water;
 import com.alegz.mermaid.components.ButtonComponent;
 import com.alegz.mermaid.components.ImageRendererComponent;
 import com.alegz.mermaid.components.MeshRendererComponent;
+import com.alegz.mermaid.components.RendererComponent;
 import com.alegz.mermaid.components.SpriteRendererComponent;
 import com.alegz.mermaid.components.TextRendererComponent;
 import com.alegz.mermaid.components.TilemapRendererComponent;
@@ -49,6 +50,7 @@ public class MenuState implements GameState
 		
 		engine = new Engine();
 		engine.addComponentStorage(TransformComponent.class);
+		engine.addComponentStorage(RendererComponent.class);
 		engine.addComponentStorage(SpriteRendererComponent.class);
 		engine.addComponentStorage(MeshRendererComponent.class);
 		engine.addComponentStorage(TilemapRendererComponent.class);
@@ -240,7 +242,7 @@ public class MenuState implements GameState
 		{
 			Vector2 velocity = camera.getScreenToWorldPosition(Gdx.input.getX(), Gdx.input.getY() + Gdx.input.getDeltaY());
 			velocity.sub(oldMousePos);
-			water.splash(mousePos.x, velocity.y);
+			water.splash(mousePos.x, velocity.y, true);
 		}
 		oldMousePos = mousePos;
 	}

@@ -5,12 +5,24 @@ import com.badlogic.gdx.physics.box2d.Shape;
 
 public class CircleCollider extends Collider
 {
-	public float radius;
+	private float radius;
 	
 	public CircleCollider(float radius, short categoryBits, short maskBits)
 	{
 		super(categoryBits, maskBits);
 		this.radius = radius;
+	}
+	
+	public void setRadius(float radius)
+	{
+		this.radius = radius;
+		if (fixtures != null)
+			fixtures[0].getShape().setRadius(radius);
+	}
+	
+	public float getRadius()
+	{
+		return radius;
 	}
 	
 	protected Shape[] getShapes()

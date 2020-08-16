@@ -11,9 +11,11 @@ import com.alegz.mermaid.Tilemap;
 import com.alegz.mermaid.Water;
 import com.alegz.mermaid.components.ButtonComponent;
 import com.alegz.mermaid.components.CameraComponent;
+import com.alegz.mermaid.components.FishComponent;
 import com.alegz.mermaid.components.ImageRendererComponent;
 import com.alegz.mermaid.components.MeshRendererComponent;
 import com.alegz.mermaid.components.PlayerComponent;
+import com.alegz.mermaid.components.RendererComponent;
 import com.alegz.mermaid.components.RigidbodyComponent;
 import com.alegz.mermaid.components.SpriteRendererComponent;
 import com.alegz.mermaid.components.TextRendererComponent;
@@ -30,22 +32,16 @@ import com.alegz.mermaid.rendering.PlatformerCamera;
 import com.alegz.mermaid.rendering.material.Material;
 import com.alegz.mermaid.systems.ButtonSystem;
 import com.alegz.mermaid.systems.CameraSystem;
+import com.alegz.mermaid.systems.FishSystem;
 import com.alegz.mermaid.systems.PhysicsDebugSystem;
 import com.alegz.mermaid.systems.PhysicsSystem;
 import com.alegz.mermaid.systems.PlayerSystem;
 import com.alegz.mermaid.systems.PollutionSystem;
 import com.alegz.mermaid.systems.RenderingSystem;
-import com.alegz.mermaid.utils.GameUtils;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input.Buttons;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.Mesh;
-import com.badlogic.gdx.graphics.VertexAttribute;
-import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
-import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
@@ -72,6 +68,9 @@ public class PlayState implements GameState
 	
 	private TextRendererComponent trashText;
 	
+	private ArrayList<Entity> fishEntities;
+	private int totalActiveFish;
+	
 	private Entity nextLevelButton;
 	private Entity continueButton;
 	private Entity restartButton;
@@ -92,6 +91,7 @@ public class PlayState implements GameState
 		
 		engine = new Engine();
 		engine.addComponentStorage(TransformComponent.class);
+		engine.addComponentStorage(RendererComponent.class);
 		engine.addComponentStorage(SpriteRendererComponent.class);
 		engine.addComponentStorage(MeshRendererComponent.class);
 		engine.addComponentStorage(TilemapRendererComponent.class);
@@ -100,6 +100,7 @@ public class PlayState implements GameState
 		engine.addComponentStorage(TextRendererComponent.class);
 		engine.addComponentStorage(RigidbodyComponent.class);
 		engine.addComponentStorage(PlayerComponent.class);
+		engine.addComponentStorage(FishComponent.class);
 		engine.addComponentStorage(TrashComponent.class);
 		engine.addComponentStorage(CameraComponent.class);
 		
@@ -110,10 +111,14 @@ public class PlayState implements GameState
 		PlayerSystem playerSystem = new PlayerSystem(water);
 		physicsSystem.addSystemListener(playerSystem);
 		
+		FishSystem fishSystem = new FishSystem(water, tilemap);
+		physicsSystem.addSystemListener(fishSystem);
+		
 		PollutionSystem pollutionSystem = new PollutionSystem(assets.getMaterial(Assets.MATERIAL_WATER));
 		physicsSystem.addSystemListener(pollutionSystem);
 		
 		engine.addSystem(playerSystem);
+		engine.addSystem(fishSystem);
 		engine.addSystem(pollutionSystem);
 		engine.addSystem(physicsSystem);
 		engine.addSystem(new CameraSystem());
@@ -165,6 +170,62 @@ public class PlayState implements GameState
 			}
 		}
 		
+		//fish
+		fishEntities = new ArrayList<>();
+		{
+			List<Vector2> positions = new ArrayList<Vector2>();
+			for (int y = 0; y < tilemap.getHeight(); y++)
+			{
+				for (int x = 0; x < tilemap.getWidth(); x++)
+				{
+					if (tilemap.getTile(x, y) != 0)
+						continue;
+					
+					Vector2 position = tilemap.getWorldPos(x, y);
+					position.x += 0.5f;
+					position.y -= 0.5f;
+					if (position.y > 0)
+						continue;
+					positions.add(position);
+				}
+			}
+			
+			int counter = Math.min(tilemap.getFishCount(), positions.size());
+			while (counter > 0)
+			{
+				Vector2 position = positions.get(MathUtils.random(0, positions.size() - 1));
+				positions.remove(position);
+				counter--;
+				
+				Entity entity = new Entity();
+				TransformComponent transform = new TransformComponent();
+				transform.position = position;
+				
+				SpriteRendererComponent spriteRenderer = new SpriteRendererComponent();
+				spriteRenderer.material = assets.getMaterial(Assets.MATERIAL_SPRITE);
+				spriteRenderer.layer = 1;
+				
+				RigidbodyComponent rigidbody = new RigidbodyComponent();
+				rigidbody.create(physicsSystem.getWorld(), entity, transform, BodyType.DynamicBody);
+				rigidbody.getBody().setFixedRotation(true);
+				
+				CircleCollider collider = new CircleCollider(0.5f, PhysicsSystem.CATEGORY_FISH, PhysicsSystem.CATEGORY_WORLD);
+				rigidbody.addCollider(collider);
+				
+				FishComponent fish = new FishComponent();
+				fish.type = assets.getFishType(Assets.FISH_TYPES[MathUtils.random(0, Assets.FISH_TYPES.length - 1)]);;
+				spriteRenderer.sprite = fish.type.sprite;
+				
+				engine.addComponent(entity, transform);
+				engine.addComponent(entity, spriteRenderer);
+				engine.addComponent(entity, rigidbody);
+				engine.addComponent(entity, fish);
+				engine.addEntity(entity);
+				
+				fishEntities.add(entity);
+			}
+		}
+		
 		//trash
 		{
 			List<Vector2> positions = new ArrayList<Vector2>();
@@ -176,6 +237,8 @@ public class PlayState implements GameState
 						continue;
 					
 					Vector2 position = tilemap.getWorldPos(x, y);
+					position.x += 0.5f;
+					position.y -= 0.5f;
 					if (position.y > 0)
 						continue;
 					positions.add(position);
@@ -194,13 +257,14 @@ public class PlayState implements GameState
 				Entity entity = new Entity();
 				TransformComponent transform = new TransformComponent();
 				transform.position = position;
-				transform.position.x +=  0.5f + MathUtils.random(-0.25f, 0.25f);
-				transform.position.y += -0.5f + MathUtils.random(-0.25f, 0.25f);
+				transform.position.x += MathUtils.random(-0.25f, 0.25f);
+				transform.position.y += MathUtils.random(-0.25f, 0.25f);
 				transform.rotation = MathUtils.random(0, 360);
 				
 				SpriteRendererComponent spriteRenderer = new SpriteRendererComponent();
 				spriteRenderer.sprite = spriteAtlas.getRegions().get(MathUtils.random(0, spriteAtlas.getRegions().size - 1));
 				spriteRenderer.material = assets.getMaterial(Assets.MATERIAL_SPRITE);
+				spriteRenderer.layer = 2;
 				
 				RigidbodyComponent rigidbody = new RigidbodyComponent();
 				rigidbody.create(physicsSystem.getWorld(), entity, transform, BodyType.KinematicBody);
@@ -227,6 +291,7 @@ public class PlayState implements GameState
 			spriteRenderer.sprite = assets.getSprite(Assets.SPRITE_PLAYER);
 			spriteRenderer.pivot.y = 0.25f;
 			spriteRenderer.material = assets.getMaterial(Assets.MATERIAL_SPRITE);
+			spriteRenderer.layer = 3;
 			
 			RigidbodyComponent rigidbody = new RigidbodyComponent();
 			rigidbody.create(physicsSystem.getWorld(), entity, transform, BodyType.DynamicBody);
@@ -241,6 +306,7 @@ public class PlayState implements GameState
 			rigidbody.addCollider(trashSensor);
 			
 			PlayerComponent player = new PlayerComponent();
+			player.trashSensor = trashSensor;
 			
 			engine.addComponent(entity, transform);
 			engine.addComponent(entity, spriteRenderer);
@@ -277,7 +343,7 @@ public class PlayState implements GameState
 				{
 					if (tilemap.getTile(x, y) != 0 ||
 						tilemap.getTile(x, y + 1) == 0 ||
-						MathUtils.random() > 1.0f / 3.0f )
+						MathUtils.random() > 1.0f / 3.0f)
 						continue;
 					
 					TransformComponent transform = new TransformComponent();
@@ -293,6 +359,7 @@ public class PlayState implements GameState
 					spriteRenderer.sprite = spriteAtlas.getRegions().get(MathUtils.random(0, spriteAtlas.getRegions().size - 1));
 					spriteRenderer.pivot.y = 0;
 					spriteRenderer.material = assets.getMaterial(Assets.MATERIAL_PLANT);
+					spriteRenderer.layer = 4;
 					
 					Entity entity = new Entity();
 					engine.addComponent(entity, transform);
@@ -310,11 +377,12 @@ public class PlayState implements GameState
 			TilemapRendererComponent tilemapRenderer = new TilemapRendererComponent(tilemap,
 				assets.getSpriteAtlas(Assets.SPRITE_ATLAS_TILE));
 			tilemapRenderer.material = assets.getMaterial(Assets.MATERIAL_SPRITE);
+			tilemapRenderer.layer = 5;
 			
 			RigidbodyComponent rigidbody = new RigidbodyComponent();
 			rigidbody.create(physicsSystem.getWorld(), entity, transform, BodyType.StaticBody);
 			
-			TilemapCollider collider = new TilemapCollider(tilemap, PhysicsSystem.CATEGORY_WORLD, PhysicsSystem.CATEGORY_PLAYER);
+			TilemapCollider collider = new TilemapCollider(tilemap, PhysicsSystem.CATEGORY_WORLD, (short)(PhysicsSystem.CATEGORY_PLAYER | PhysicsSystem.CATEGORY_FISH));
 			rigidbody.addCollider(collider);
 			
 			engine.addComponent(entity, transform);
@@ -332,6 +400,7 @@ public class PlayState implements GameState
 			
 			SpriteRendererComponent spriteRenderer = new SpriteRendererComponent();
 			spriteRenderer.material = assets.getMaterial(Assets.MATERIAL_WATER);
+			spriteRenderer.layer = 6;
 			
 			Entity entity = new Entity();
 			engine.addComponent(entity, transform);
@@ -570,6 +639,10 @@ public class PlayState implements GameState
 		time = 0;
 		setPaused(false);
 		
+		for (Entity entity : fishEntities)
+			engine.setActive(entity, false);
+		totalActiveFish = 0;
+		
 		engine.setActive(staminaBarEntity, false);
 		engine.setActive(staminaBorderEntity, false);
 		
@@ -686,6 +759,17 @@ public class PlayState implements GameState
 		{
 			engine.setActive(staminaBarEntity, false);
 			engine.setActive(staminaBorderEntity, false);
+		}
+		
+		{
+			int activeFish = (int)((float)tilemap.getFishCount() * (1.0f - pollutionSystem.getPollution()));
+			if (activeFish > totalActiveFish && fishEntities.size() > 0)
+			{
+				Entity entity = fishEntities.get(0);
+				fishEntities.remove(entity);
+				engine.setActive(entity, true);
+				totalActiveFish++;
+			}
 		}
 		
 		time += deltaTime;

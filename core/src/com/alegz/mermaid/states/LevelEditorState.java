@@ -8,6 +8,7 @@ import com.alegz.mermaid.components.CameraComponent;
 import com.alegz.mermaid.components.ImageRendererComponent;
 import com.alegz.mermaid.components.MeshRendererComponent;
 import com.alegz.mermaid.components.PlayerComponent;
+import com.alegz.mermaid.components.RendererComponent;
 import com.alegz.mermaid.components.RigidbodyComponent;
 import com.alegz.mermaid.components.SpriteRendererComponent;
 import com.alegz.mermaid.components.TextRendererComponent;
@@ -58,6 +59,7 @@ public class LevelEditorState implements GameState
 		
 		engine = new Engine();
 		engine.addComponentStorage(TransformComponent.class);
+		engine.addComponentStorage(RendererComponent.class);
 		engine.addComponentStorage(SpriteRendererComponent.class);
 		engine.addComponentStorage(MeshRendererComponent.class);
 		engine.addComponentStorage(TilemapRendererComponent.class);

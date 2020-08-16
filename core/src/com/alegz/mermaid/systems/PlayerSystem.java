@@ -121,9 +121,12 @@ public class PlayerSystem extends IteratingSystem implements PhysicsSystemListen
 			drag = MathUtils.lerp(drag, player.impulseDrag, 
 				GameUtils.smoothstep(0, player.impulse, player.velocity.len() - player.speed));
 			player.velocity.scl(1 / (1 + drag * deltaTime));
+			
+			player.trashRadius = 1.0f + GameUtils.smoothstep(0, player.impulse, player.velocity.len() - player.speed);
+			player.trashSensor.setRadius(player.trashRadius);
 		}
 		else
-			player.velocity.add(0, player.gravity * deltaTime);
+			player.velocity.add(0, RigidbodyComponent.gravity * deltaTime);
 		
 		rigidbody.getBody().setLinearVelocity(player.velocity);
 		
@@ -139,7 +142,7 @@ public class PlayerSystem extends IteratingSystem implements PhysicsSystemListen
 		transform.rotation = MathUtils.lerpAngleDeg(transform.rotation, desiredRotation, GameUtils.damp(0.0001f, deltaTime));
 
 		if (transform.position.y * player.oldHeight < 0)
-			water.splash(transform.position.x, player.velocity.y / (player.speed + player.impulse));
+			water.splash(transform.position.x, player.velocity.y / (player.speed + player.impulse), true);
 		player.oldHeight = transform.position.y;
 	}
 
@@ -166,7 +169,7 @@ public class PlayerSystem extends IteratingSystem implements PhysicsSystemListen
 			{
 				if (normal.y > MathUtils.cosDeg(45.0f))
 				{
-					player.velocity.y = (float)Math.sqrt((17.0f / 16.0f) * -2.0f * player.gravity);
+					player.velocity.y = (float)Math.sqrt((17.0f / 16.0f) * -2.0f * RigidbodyComponent.gravity);
 					if (Math.abs(player.velocity.x) < 0.1f)
 						player.velocity.x = MathUtils.randomSign();
 				}

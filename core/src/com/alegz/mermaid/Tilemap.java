@@ -13,6 +13,7 @@ public class Tilemap
 	private int width, height;
 	private Vector2 offset;
 	private int trashCount;
+	private int fishCount;
 	
 	public Tilemap()
 	{
@@ -68,6 +69,11 @@ public class Tilemap
 	public int getTrashCount()
 	{
 		return trashCount;
+	}
+	
+	public int getFishCount()
+	{
+		return fishCount;
 	}
 	
 	public Vector2 getWorldPos(int x, int y)

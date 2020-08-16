@@ -102,9 +102,4 @@ public class TilemapRendererComponent extends RendererComponent
 		}
 		mesh.end();
 	}
-	
-	public Class<? extends Component> getComponentClass()
-	{
-		return TilemapRendererComponent.class;
-	}
 }

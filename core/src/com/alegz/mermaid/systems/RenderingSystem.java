@@ -1,7 +1,6 @@
 package com.alegz.mermaid.systems;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import com.alegz.mermaid.PixelFont;
 import com.alegz.mermaid.components.ImageRendererComponent;
@@ -28,10 +27,11 @@ public class RenderingSystem extends EntitySystem
 	private PlatformerCamera camera;
 	private PixelFont font;
 	
-	private List<Entity> entities;
-	private List<Entity> uiEntities;
+	private ArrayList<Entity> entities;
+	private ArrayList<Entity> uiEntities;
 	
 	private ObjectMap<Entity, TransformComponent> transformComponents;
+	private ObjectMap<Entity, RendererComponent> rendererComponents;
 	private ObjectMap<Entity, SpriteRendererComponent> spriteRendererComponents;
 	private ObjectMap<Entity, MeshRendererComponent> meshRendererComponents;
 	private ObjectMap<Entity, UITransformComponent> uiTransformComponents;
@@ -52,6 +52,7 @@ public class RenderingSystem extends EntitySystem
 	public void start(Engine engine) 
 	{
 		transformComponents = engine.getComponentStorage(TransformComponent.class);
+		rendererComponents = engine.getComponentStorage(RendererComponent.class);
 		spriteRendererComponents = engine.getComponentStorage(SpriteRendererComponent.class);
 		meshRendererComponents = engine.getComponentStorage(MeshRendererComponent.class);
 		tilemapRendererComponents = engine.getComponentStorage(TilemapRendererComponent.class);
@@ -111,7 +112,18 @@ public class RenderingSystem extends EntitySystem
 			(engine.hasComponent(entity, SpriteRendererComponent.class) ||
 			 engine.hasComponent(entity, MeshRendererComponent.class) ||
 			 engine.hasComponent(entity, TilemapRendererComponent.class)))
-			entities.add(entity);
+		{
+			int layer = engine.getComponent(entity, RendererComponent.class).layer;
+			int index = 0;
+			for (Entity otherEntity : entities)
+			{
+				int otherLayer = engine.getComponent(otherEntity, RendererComponent.class).layer;
+				if (layer >= otherLayer)
+					index++;
+			}
+			entities.add(index, entity);
+		}
+			
 		else if (engine.hasComponent(entity, UITransformComponent.class) &&
 				 (engine.hasComponent(entity, ImageRendererComponent.class) ||
 				  engine.hasComponent(entity, TextRendererComponent.class)))

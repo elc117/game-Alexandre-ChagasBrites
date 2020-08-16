@@ -81,14 +81,15 @@ public class Water
 		waterMaterial.setFloat("u_totalHeight", 32.0f + 1.0f);
 	}
 	
-	public void splash(float x, float speed)
+	public void splash(float x, float speed, boolean play)
 	{
 		int index = MathUtils.round((x / width + 0.5f) * width);
 		if (index >= 0 && index < length)
 		{
 			heights[index] = speed;
-			velocities[index] = -speed;
-			SoundManager.play(Assets.SOUND_SPLASH, MathUtils.clamp(Math.abs(speed), 0, 1));
+			velocities[index] -= speed;
+			if (play)
+				SoundManager.play(Assets.SOUND_SPLASH, MathUtils.clamp(Math.abs(speed), 0, 1));
 		}
 	}
 }

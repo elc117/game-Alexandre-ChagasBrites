@@ -9,9 +9,4 @@ public class SpriteRendererComponent extends RendererComponent
 	public TextureRegion sprite = null;
 	public Vector2 pivot = new Vector2(0.5f, 0.5f);
 	public float depth = 0;
-	
-	public Class<? extends Component> getComponentClass()
-	{
-		return SpriteRendererComponent.class;
-	}
 }

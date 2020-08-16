@@ -18,7 +18,7 @@ public class MermaidGame extends ApplicationAdapter
 		assets.load();
 		
 		SoundManager.init(assets);
-		//SoundManager.playMusic();
+		SoundManager.playMusic();
 		
 		gameState = new MenuState(this, assets);
 		gameState.create();
@@ -31,8 +31,6 @@ public class MermaidGame extends ApplicationAdapter
 
 	public void render () 
 	{
-		SoundManager.update();
-		
 		newState = null;
 		gameState.update();
 		if (newState != null && newState != gameState)
@@ -42,9 +40,7 @@ public class MermaidGame extends ApplicationAdapter
 			newState.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 			gameState = newState;
 		}
-		
-		if (Gdx.input.isButtonJustPressed(Buttons.LEFT) && !SoundManager.isMusicPlaying())
-			SoundManager.playMusic();
+		SoundManager.update();
 	}
 	
 	public void resize(int width, int height)

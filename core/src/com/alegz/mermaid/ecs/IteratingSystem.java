@@ -7,7 +7,7 @@ import com.badlogic.gdx.Gdx;
 
 public abstract class IteratingSystem extends EntitySystem
 {
-	private List<Entity> entities;
+	private ArrayList<Entity> entities;
 	
 	public IteratingSystem()
 	{
@@ -29,6 +29,12 @@ public abstract class IteratingSystem extends EntitySystem
 	{
 		if (shouldAddEntity(engine, entity))
 			entities.add(entity);
+	}
+	
+	public final void entityRemoved(Engine engine, Entity entity)
+	{
+		if (entities.contains(entity))
+			entities.remove(entity);
 	}
 	
 	protected abstract boolean shouldAddEntity(Engine engine, Entity entity);
