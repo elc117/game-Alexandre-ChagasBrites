@@ -1,4 +1,4 @@
-package com.alegz.mermaid.ecs;
+package com.alegz.ecs;
 
 public interface EntitySystemListener 
 {

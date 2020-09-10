@@ -14,6 +14,7 @@ public class TextureAttribute extends MaterialAttribute
 		this.unit = unit;
 	}
 	
+	@Override
 	public void set(String key, ShaderProgram shader) 
 	{
 		texture.bind(unit);

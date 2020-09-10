@@ -1,15 +1,9 @@
 package com.alegz.mermaid.components;
 
 import com.alegz.mermaid.FishType;
-import com.alegz.mermaid.ecs.Component;
 
-public class FishComponent implements Component
+public class FishComponent extends AnimalComponent
 {
-	public FishType type;
+	public FishType type = null;
 	public float oldHeight = 0.0f;
-
-	public Class<? extends Component> getComponentClass() 
-	{
-		return FishComponent.class;
-	}
 }

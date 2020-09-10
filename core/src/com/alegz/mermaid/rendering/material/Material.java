@@ -54,6 +54,19 @@ public class Material
 		attributes.put(key, new FloatArrayAttribute(values, length));
 	}
 	
+	public void setVector2(String key, float x, float y)
+	{
+		MaterialAttribute attribute = attributes.get(key);
+		if (attribute != null)
+		{
+			Vector2Attribute vector2Attribute = (Vector2Attribute)attribute;
+			vector2Attribute.x = x;
+			vector2Attribute.y = y;
+			return;
+		}
+		attributes.put(key, new Vector2Attribute(x, y));
+	}
+	
 	public void setMatrix(String key, Matrix4 matrix)
 	{
 		MaterialAttribute attribute = attributes.get(key);

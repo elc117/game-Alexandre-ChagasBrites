@@ -1,48 +1,46 @@
 package com.alegz.mermaid.systems;
 
+import com.alegz.ecs.ComponentMap;
+import com.alegz.ecs.Engine;
+import com.alegz.ecs.Entity;
+import com.alegz.ecs.IteratingSystem;
 import com.alegz.mermaid.components.CameraComponent;
 import com.alegz.mermaid.components.TransformComponent;
 import com.alegz.mermaid.rendering.PlatformerCamera;
 import com.alegz.mermaid.utils.GameUtils;
-import com.alegz.mermaid.ecs.Engine;
-import com.alegz.mermaid.ecs.Entity;
-import com.alegz.mermaid.ecs.IteratingSystem;
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.utils.ObjectMap;
 
 public class CameraSystem extends IteratingSystem
 {
-	private ObjectMap<Entity, TransformComponent> transformComponents;
-	private ObjectMap<Entity, CameraComponent> cameraComponents;
+	private ComponentMap<TransformComponent> transformComponents;
+	private ComponentMap<CameraComponent> cameraComponents;
 	
-	public CameraSystem() 
+	public CameraSystem(Engine engine) 
 	{
-		super();
-	}
-	
-	public void start(Engine engine) 
-	{
-		transformComponents = engine.getComponentStorage(TransformComponent.class);
-		cameraComponents = engine.getComponentStorage(CameraComponent.class);
+		super(engine, engine.createEntityList().has(TransformComponent.class, CameraComponent.class));
+		transformComponents = engine.getComponentMap(TransformComponent.class);
+		cameraComponents = engine.getComponentMap(CameraComponent.class);
 	}
 
-	public void processEntity(Entity entity, float deltaTime)
+	@Override
+	public void updateEntity(Entity entity, float deltaTime)
 	{
 		TransformComponent transform = transformComponents.get(entity);
-		CameraComponent cam = cameraComponents.get(entity);
-		PlatformerCamera camera = cam.camera;
+		CameraComponent camera = cameraComponents.get(entity);
+		PlatformerCamera platformerCamera = camera.camera;
 		
-		if (cam.target != null)
+		if (camera.target != null)
 		{
-			Vector2 newPosition = cam.target.position.cpy();
+			Vector2 newPosition = camera.target.position.cpy();
 			float lerp = GameUtils.damp(0.001f, deltaTime);
 			
-			if (cam.targetPlayer != null)
+			if (camera.targetPlayer != null)
 			{	
-				Vector2 offset = cam.targetPlayer.velocity.cpy();
-				float t = Math.max(0, offset.len() - cam.targetPlayer.speed);
-				t /= (cam.targetPlayer.maxSpeed - cam.targetPlayer.speed);
+				Vector2 offset = camera.targetPlayer.velocity.cpy();
+				float t = Math.max(0, offset.len() - camera.targetPlayer.speed);
+				t /= (camera.targetPlayer.maxSpeed - camera.targetPlayer.speed);
 				t *= t;
 				
 				offset.nor();
@@ -54,17 +52,21 @@ public class CameraSystem extends IteratingSystem
 			transform.position.lerp(newPosition, lerp);
 		}
 		
-		camera.position.x = MathUtils.clamp(transform.position.x,
-											cam.minBounds.x + camera.getSize().x,
-											cam.maxBounds.x - camera.getSize().x);
-		camera.position.y = MathUtils.clamp(transform.position.y,
-											cam.minBounds.y + camera.getSize().y, 
-											0);
+		platformerCamera.position.x = MathUtils.clamp(transform.position.x,
+				camera.minBounds.x + platformerCamera.getSize().x,
+				camera.maxBounds.x - platformerCamera.getSize().x);
+		platformerCamera.position.y = MathUtils.clamp(transform.position.y,
+				camera.minBounds.y + platformerCamera.getSize().y, 0);
+		platformerCamera.setPixelPerfectMatrix(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), 12);
 	}
 	
-	protected boolean shouldAddEntity(Engine engine, Entity entity)
+	@Override
+	public void resize(int width, int height)
 	{
-		return engine.hasComponent(entity, TransformComponent.class) &&
-			   engine.hasComponent(entity, CameraComponent.class);
+		for (Entity entity : entityList)
+		{
+			CameraComponent camera = cameraComponents.get(entity);
+			camera.camera.setPixelPerfectMatrix(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), 12);
+		}
 	}
 }

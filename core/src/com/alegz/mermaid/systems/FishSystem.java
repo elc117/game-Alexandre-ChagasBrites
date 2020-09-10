@@ -2,70 +2,60 @@ package com.alegz.mermaid.systems;
 
 import java.util.ArrayList;
 
+import com.alegz.ecs.ComponentMap;
+import com.alegz.ecs.Engine;
+import com.alegz.ecs.Entity;
+import com.alegz.ecs.EntityList;
+import com.alegz.ecs.EntityListListener;
+import com.alegz.ecs.EntitySystem;
 import com.alegz.mermaid.QuadTree;
-import com.alegz.mermaid.Rect;
 import com.alegz.mermaid.Tilemap;
 import com.alegz.mermaid.Water;
+import com.alegz.mermaid.components.AnimalComponent;
 import com.alegz.mermaid.components.FishComponent;
-import com.alegz.mermaid.components.PlayerComponent;
 import com.alegz.mermaid.components.RigidbodyComponent;
 import com.alegz.mermaid.components.TransformComponent;
-import com.alegz.mermaid.ecs.Engine;
-import com.alegz.mermaid.ecs.Entity;
-import com.alegz.mermaid.ecs.EntitySystem;
 import com.alegz.mermaid.physics.Collider;
 import com.alegz.mermaid.systems.listeners.PhysicsSystemListener;
 import com.alegz.mermaid.utils.GameUtils;
+import com.badlogic.gdx.math.Circle;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.utils.ObjectMap;
 
-public class FishSystem extends EntitySystem implements PhysicsSystemListener
+public class FishSystem extends EntitySystem implements PhysicsSystemListener, EntityListListener
 {
 	private Water water;
 	private QuadTree<Entity> entityTree;
 	
-	private ArrayList<Entity> fishEntities;
-	private ArrayList<Entity> collideEntities;
+	private EntityList fishEntities;
+	private EntityList collideEntities;
 	
-	private ObjectMap<Entity, TransformComponent> transformComponents;
-	private ObjectMap<Entity, RigidbodyComponent> rigidbodyComponents;
-	private ObjectMap<Entity, FishComponent> fishComponents;
+	private ComponentMap<TransformComponent> transformComponents;
+	private ComponentMap<RigidbodyComponent> rigidbodyComponents;
+	private ComponentMap<FishComponent> fishComponents;
 	
-	private Engine engine;
-	
-	public FishSystem(Water water, Tilemap tilemap)
+	public FishSystem(Engine engine, Water water, Tilemap tilemap)
 	{
+		super(engine);
 		this.water = water;
 		
 		Vector2 minPos = tilemap.getWorldPos(0, tilemap.getHeight());
 		Vector2 maxPos = tilemap.getWorldPos(tilemap.getWidth(), 0);
-		Rect rect = new Rect(minPos.x, minPos.y, maxPos.x - minPos.x, maxPos.y - minPos.y);
+		Rectangle rect = new Rectangle(minPos.x, minPos.y, maxPos.x - minPos.x, maxPos.y - minPos.y);
 		entityTree = new QuadTree<>(rect, 1.0f);
 		
-		fishEntities = new ArrayList<>();
-		collideEntities = new ArrayList<>();
-	}
-	
-	public void start(Engine engine) 
-	{
-		transformComponents = engine.getComponentStorage(TransformComponent.class);
-		rigidbodyComponents = engine.getComponentStorage(RigidbodyComponent.class);
-		fishComponents = engine.getComponentStorage(FishComponent.class);
+		fishEntities = engine.createEntityList().has(TransformComponent.class, RigidbodyComponent.class, FishComponent.class);
+		collideEntities = engine.createEntityList().has(TransformComponent.class, RigidbodyComponent.class, AnimalComponent.class);
 		
-		this.engine = engine;
-		for (Entity entity : fishEntities)
-		{
-			RigidbodyComponent rigidbody = rigidbodyComponents.get(entity);
-			FishComponent fish = fishComponents.get(entity);
-			
-			float angle = MathUtils.random(0.0f, 360.0f);
-			Vector2 velocity = new Vector2(MathUtils.cosDeg(angle), MathUtils.sinDeg(angle));
-			velocity.scl(fish.type.speed);
-			rigidbody.getBody().setLinearVelocity(velocity);
-		}
+		fishEntities.setListener(this);
+		
+		transformComponents = engine.getComponentMap(TransformComponent.class);
+		rigidbodyComponents = engine.getComponentMap(RigidbodyComponent.class);
+		fishComponents = engine.getComponentMap(FishComponent.class);
 	}
 	
+	@Override
 	public void update(float deltaTime)
 	{
 		for (Entity entity : collideEntities) 
@@ -74,7 +64,7 @@ public class FishSystem extends EntitySystem implements PhysicsSystemListener
 			entityTree.put(entity, transform.position.x, transform.position.y);
 		}
 		
-		Rect rect = new Rect(0, 0, 1, 1);
+		Circle circle = new Circle(0.0f, 0.0f, 1.0f);
 		ArrayList<Entity> closeEntities = new ArrayList<>();
 		for (Entity entity : fishEntities) 
 		{
@@ -83,20 +73,17 @@ public class FishSystem extends EntitySystem implements PhysicsSystemListener
 			FishComponent fish = fishComponents.get(entity);
 			
 			Vector2 velocity = rigidbody.getBody().getLinearVelocity();
-			
 			if (transform.position.y < 0)
 			{
 				Vector2 center = transform.position.cpy();
 				
 				int count = 0;
 				Vector2 oldVelocity = velocity.cpy();
-				//for (Entity otherEntity : collideEntities)
-				//ArrayList<Entity> test = entityTree.get(transform.position.x, transform.position.y);
-				rect.x = transform.position.x - fish.type.dist;
-				rect.y = transform.position.y - fish.type.dist;
-				rect.width = rect.height = fish.type.dist * 2.0f;
+				circle.x = transform.position.x;
+				circle.y = transform.position.y;
+				circle.radius = fish.type.dist;
 				
-				entityTree.get(rect, closeEntities);
+				entityTree.get(circle, closeEntities);
 				for (Entity otherEntity : closeEntities)
 				{
 					if (otherEntity == entity)
@@ -104,8 +91,6 @@ public class FishSystem extends EntitySystem implements PhysicsSystemListener
 					
 					TransformComponent otherTransform = transformComponents.get(otherEntity);
 					Vector2 offset = transform.position.cpy().sub(otherTransform.position);
-					if (offset.len2() > fish.type.dist * fish.type.dist)
-						continue;
 					
 					float dist = offset.len2();
 					Vector2 separation = offset.scl(1.0f - Math.min(1, dist / (1.0f * 1.0f)));
@@ -149,32 +134,41 @@ public class FishSystem extends EntitySystem implements PhysicsSystemListener
 		}
 		entityTree.clear();
 	}
-	
-	public final void entityAdded(Engine engine, Entity entity)
-	{
-		if (engine.hasComponent(entity, TransformComponent.class) &&
-		    engine.hasComponent(entity, RigidbodyComponent.class) &&
-		    engine.hasComponent(entity, FishComponent.class))
-			fishEntities.add(entity);
-		
-		if (engine.hasComponent(entity, TransformComponent.class) &&
-		    engine.hasComponent(entity, RigidbodyComponent.class) &&
-		    (engine.hasComponent(entity, PlayerComponent.class) ||
-		     engine.hasComponent(entity, FishComponent.class)))
-			collideEntities.add(entity);
-	}
 
+	@Override
 	public void beginSensor(Entity selfEntity, Collider selfCollider, Entity otherEntity, Collider otherCollider) 
 	{
 		
 	}
 
+	@Override
 	public void beginContact(Entity selfEntity, Collider selfCollider, Entity otherEntity, Collider otherCollider, Vector2 normal) 
 	{
 		if (engine.hasComponent(selfEntity, FishComponent.class))
 		{
+			TransformComponent transform = transformComponents.get(selfEntity);
 			RigidbodyComponent rigidbody = rigidbodyComponents.get(selfEntity);
 			Vector2 velocity = rigidbody.getBody().getLinearVelocity();
+			
+			if (transform.position.y > 0)
+			{
+				if (normal.y > MathUtils.cosDeg(45.0f))
+				{
+					final float force = (float)Math.sqrt((17.0f / 16.0f) * -2.0f * RigidbodyComponent.gravity);
+					if (-velocity.y * 0.5f < force)
+						velocity.y = force;
+					else
+						velocity.y = -velocity.y * 0.5f;
+					if (Math.abs(velocity.x) < 1.0f)
+						velocity.x = MathUtils.randomSign();
+				}
+				else
+					velocity.x = Math.abs(velocity.x) * Math.signum(normal.x);
+				
+				rigidbody.getBody().setLinearVelocity(velocity);
+				return;
+			}
+			
 			if (Math.abs(normal.y) > 0.707f)
 			{
 				velocity.x = MathUtils.random(-1.0f, 1.0f);
@@ -189,8 +183,27 @@ public class FishSystem extends EntitySystem implements PhysicsSystemListener
 		}
 	}
 	
+	@Override
 	public void dispose()
 	{
 		entityTree.clear();
+	}
+
+	@Override
+	public void entityAdded(Engine engine, Entity entity)
+	{
+		RigidbodyComponent rigidbody = rigidbodyComponents.get(entity);
+		FishComponent fish = fishComponents.get(entity);
+		
+		float angle = MathUtils.random(0.0f, 360.0f);
+		Vector2 velocity = new Vector2(MathUtils.cosDeg(angle), MathUtils.sinDeg(angle));
+		velocity.scl(fish.type.speed);
+		rigidbody.getBody().setLinearVelocity(velocity);
+	}
+
+	@Override
+	public void entityRemoved(Engine engine, Entity entity) 
+	{
+		
 	}
 }

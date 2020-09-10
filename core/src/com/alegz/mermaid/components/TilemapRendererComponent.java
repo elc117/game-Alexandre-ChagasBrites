@@ -1,8 +1,8 @@
 package com.alegz.mermaid.components;
 
 import com.alegz.mermaid.Tilemap;
-import com.alegz.mermaid.ecs.Component;
 import com.alegz.mermaid.rendering.MeshCreator;
+import com.alegz.mermaid.rendering.Renderer;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Matrix4;
@@ -19,6 +19,20 @@ public class TilemapRendererComponent extends RendererComponent
 		this.tilemap = tilemap;
 		this.spriteAtlas = spriteAtlas;
 		createMesh();
+	}
+	
+	@Override
+	public void draw(Renderer renderer, TransformComponent transform) 
+	{
+		renderer.setMaterial(material);
+		renderer.setTexture(spriteAtlas.getRegions().get(0).getTexture());
+		renderer.draw(mesh);
+	}
+	
+	@Override
+	public void draw(Renderer renderer, UITransformComponent transform) 
+	{
+		
 	}
 	
 	public void createMesh()

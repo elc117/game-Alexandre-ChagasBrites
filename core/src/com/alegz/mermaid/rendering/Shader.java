@@ -15,21 +15,18 @@ public class Shader
 		this.blend = blend;
 	}
 	
-	public void begin()
+	public void bind()
 	{
-		program.begin();
+		program.bind();
 		if (blend)
 		{
 			Gdx.gl20.glEnable(GL20.GL_BLEND);
 			Gdx.gl20.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 		}
-	}
-	
-	public void end()
-	{
-		if (blend)
+		else
+		{
 			Gdx.gl20.glDisable(GL20.GL_BLEND);
-		program.end();
+		}
 	}
 	
 	public ShaderProgram getProgram()

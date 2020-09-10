@@ -12,6 +12,7 @@ public class MatrixAttribute  extends MaterialAttribute
 		this.matrix = matrix;
 	}
 	
+	@Override
 	public void set(String key, ShaderProgram shader) 
 	{
 		shader.setUniformMatrix(key, matrix);

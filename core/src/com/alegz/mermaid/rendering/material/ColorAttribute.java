@@ -12,6 +12,7 @@ public class ColorAttribute extends MaterialAttribute
 		this.color = color;
 	}
 	
+	@Override
 	public void set(String key, ShaderProgram shader) 
 	{
 		shader.setUniformf(key, color);

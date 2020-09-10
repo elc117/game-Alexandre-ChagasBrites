@@ -9,6 +9,7 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
+import com.badlogic.gdx.graphics.Texture.TextureWrap;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
@@ -40,8 +41,12 @@ public class Assets
 	public static final String SHADER_WATER = "shaders/water";
 	public static final String SHADER_BACKGROUND = "shaders/background";
 	public static final String SHADER_UI = "shaders/ui";
+	public static final String SHADER_TRANSITION = "shaders/transition";
 	
 	public static final String SPRITE_PLAYER = "player";
+	public static final String SPRITE_PLAYER_TAIL = "player_tail";
+	public static final String SPRITE_PLAYER_STAMINA_BAR = "player_stamina_bar";
+	public static final String SPRITE_PLAYER_STAMINA_BORDER = "player_stamina_border";
 	public static final String SPRITE_BACKGROUND0 = "background0";
 	public static final String SPRITE_BACKGROUND1 = "background1";
 	public static final String SPRITE_BACKGROUND2 = "background2";
@@ -58,6 +63,7 @@ public class Assets
 	public static final String MATERIAL_WATER = "water";
 	public static final String MATERIAL_BACKGROUND = "background";
 	public static final String MATERIAL_UI = "ui";
+	public static final String MATERIAL_TRANSITION = "transition";
 	
 	public static final String[] FISH_TYPES = new String[] { "type0", "type1", "type2", "type3"};
 	
@@ -100,9 +106,13 @@ public class Assets
 		loadShader(SHADER_PLANT, false);
 		loadShader(SHADER_WATER, true);
 		loadShader(SHADER_BACKGROUND, true);
-		loadShader(SHADER_UI, true);
+		loadShader(SHADER_UI, false);
+		loadShader(SHADER_TRANSITION, false);
 		
 		loadSprite(SPRITE_PLAYER, TEXTURE_ENTITIES, 0, 0, 24, 24);
+		loadSprite(SPRITE_PLAYER_TAIL, TEXTURE_ENTITIES, 2, 34, 12, 12);
+		loadSprite(SPRITE_PLAYER_STAMINA_BAR, TEXTURE_ENTITIES, 0, 48, 16, 4);
+		loadSprite(SPRITE_PLAYER_STAMINA_BORDER, TEXTURE_ENTITIES, 0, 56, 16, 4);
 		loadSprite(SPRITE_BACKGROUND0, TEXTURE_BACKGROUND0, 0, 0, 512, 512);
 		loadSprite(SPRITE_BACKGROUND1, TEXTURE_BACKGROUND1, 0, 0, 512, 512);
 		loadSprite(SPRITE_BACKGROUND2, TEXTURE_BACKGROUND2, 0, 0, 512, 512);
@@ -163,8 +173,10 @@ public class Assets
 			atlas.addRegion("buttonDefault", new TextureRegion(texture, 0, 80, 128, 16));
 			atlas.addRegion("buttonHighlight", new TextureRegion(texture, 0, 96, 128, 16));
 			atlas.addRegion("buttonPressed", new TextureRegion(texture, 0, 112, 128, 16));
-			atlas.addRegion("staminaBar", new TextureRegion(texture, 112, 64, 16, 4));
-			atlas.addRegion("staminaBorder", new TextureRegion(texture, 112, 72, 16, 4));
+			atlas.addRegion("musicButtonDefault", new TextureRegion(texture, 112, 0, 16, 16));
+			atlas.addRegion("musicButtonHighlight", new TextureRegion(texture, 112, 16, 16, 16));
+			atlas.addRegion("musicButtonPressed", new TextureRegion(texture, 112, 32, 16, 16));
+			atlas.addRegion("checkmark", new TextureRegion(texture, 112, 64, 16, 16));
 			loadSpriteAtlas(SPRITE_ATLAS_UI, atlas);
 		}
 		
@@ -173,6 +185,7 @@ public class Assets
 		loadMaterial(MATERIAL_WATER, SHADER_WATER);
 		loadMaterial(MATERIAL_BACKGROUND, SHADER_BACKGROUND);
 		loadMaterial(MATERIAL_UI, SHADER_UI);
+		loadMaterial(MATERIAL_TRANSITION, SHADER_TRANSITION);
 		
 		{
 			TextureAtlas atlas = getSpriteAtlas(SPRITE_ATLAS_FISH);
@@ -247,12 +260,13 @@ public class Assets
 	{
 		Texture texture = new Texture(Gdx.files.internal(path));
 		texture.setFilter(filter, filter);
+		texture.setWrap(TextureWrap.Repeat, TextureWrap.Repeat);
 		textures.put(path, texture);
 	}
 	
 	private void loadShader(String path, boolean blend)
 	{
-		//ShaderProgram.pedantic = false;
+		ShaderProgram.pedantic = false;
 		ShaderProgram shader = new ShaderProgram(
 			Gdx.files.internal(path + "Vert.glsl").readString(),
 			Gdx.files.internal(path + "Frag.glsl").readString());

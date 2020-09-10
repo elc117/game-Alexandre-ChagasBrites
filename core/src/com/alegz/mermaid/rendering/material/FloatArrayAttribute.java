@@ -13,6 +13,7 @@ public class FloatArrayAttribute extends MaterialAttribute
 		this.length = length;
 	}
 	
+	@Override
 	public void set(String key, ShaderProgram shader) 
 	{
 		shader.setUniform1fv(key, values, 0, length);

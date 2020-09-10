@@ -1,7 +1,8 @@
 package com.alegz.mermaid.systems;
 
+import com.alegz.ecs.Engine;
+import com.alegz.ecs.EntitySystem;
 import com.alegz.mermaid.rendering.PlatformerCamera;
-import com.alegz.mermaid.ecs.EntitySystem;
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
 import com.badlogic.gdx.physics.box2d.World;
 
@@ -12,8 +13,9 @@ public class PhysicsDebugSystem extends EntitySystem
     
     private PlatformerCamera camera;
  
-    public PhysicsDebugSystem(World world, PlatformerCamera camera)
+    public PhysicsDebugSystem(Engine engine, World world, PlatformerCamera camera)
     {
+    	super(engine);
         this.world = world;
         debugRenderer = new Box2DDebugRenderer();
         

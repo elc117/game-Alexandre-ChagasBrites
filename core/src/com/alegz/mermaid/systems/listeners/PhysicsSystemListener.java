@@ -1,7 +1,7 @@
 package com.alegz.mermaid.systems.listeners;
 
-import com.alegz.mermaid.ecs.Entity;
-import com.alegz.mermaid.ecs.EntitySystemListener;
+import com.alegz.ecs.Entity;
+import com.alegz.ecs.EntitySystemListener;
 import com.alegz.mermaid.physics.Collider;
 import com.badlogic.gdx.math.Vector2;
 

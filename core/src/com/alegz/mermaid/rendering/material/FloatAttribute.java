@@ -11,6 +11,7 @@ public class FloatAttribute extends MaterialAttribute
 		this.value = value;
 	}
 	
+	@Override
 	public void set(String key, ShaderProgram shader) 
 	{
 		shader.setUniformf(key, value);

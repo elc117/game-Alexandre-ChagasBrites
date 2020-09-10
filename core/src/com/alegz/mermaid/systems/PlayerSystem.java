@@ -1,14 +1,15 @@
 package com.alegz.mermaid.systems;
 
+import com.alegz.ecs.ComponentMap;
+import com.alegz.ecs.Engine;
+import com.alegz.ecs.Entity;
+import com.alegz.ecs.IteratingSystem;
 import com.alegz.mermaid.Assets;
 import com.alegz.mermaid.SoundManager;
 import com.alegz.mermaid.Water;
 import com.alegz.mermaid.components.PlayerComponent;
 import com.alegz.mermaid.components.RigidbodyComponent;
 import com.alegz.mermaid.components.TransformComponent;
-import com.alegz.mermaid.ecs.Engine;
-import com.alegz.mermaid.ecs.Entity;
-import com.alegz.mermaid.ecs.IteratingSystem;
 import com.alegz.mermaid.physics.Collider;
 import com.alegz.mermaid.rendering.PlatformerCamera;
 import com.alegz.mermaid.systems.listeners.PhysicsSystemListener;
@@ -17,33 +18,29 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.utils.ObjectMap;
 
 public class PlayerSystem extends IteratingSystem implements PhysicsSystemListener
 {	
 	private Water water;
+	private PlatformerCamera camera;
 	
-	private ObjectMap<Entity, TransformComponent> transformComponents;
-	private ObjectMap<Entity, RigidbodyComponent> rigidbodyComponents;
-	private ObjectMap<Entity, PlayerComponent> playerComponents;
-	
-	private Engine engine;
+	private ComponentMap<TransformComponent> transformComponents;
+	private ComponentMap<RigidbodyComponent> rigidbodyComponents;
+	private ComponentMap<PlayerComponent> playerComponents;
 
-	public PlayerSystem(Water water) 
+	public PlayerSystem(Engine engine, Water water, PlatformerCamera camera) 
 	{
-		super();
+		super(engine, engine.createEntityList().has(TransformComponent.class, RigidbodyComponent.class, PlayerComponent.class));
 		this.water = water;
-	}
-	
-	public void start(Engine engine) 
-	{
-		transformComponents = engine.getComponentStorage(TransformComponent.class);
-		rigidbodyComponents = engine.getComponentStorage(RigidbodyComponent.class);
-		playerComponents = engine.getComponentStorage(PlayerComponent.class);
-		this.engine = engine;
+		this.camera = camera;
+		
+		transformComponents = engine.getComponentMap(TransformComponent.class);
+		rigidbodyComponents = engine.getComponentMap(RigidbodyComponent.class);
+		playerComponents = engine.getComponentMap(PlayerComponent.class);
 	}
 
-	public void processEntity(Entity entity, float deltaTime) 
+	@Override
+	public void updateEntity(Entity entity, float deltaTime) 
 	{
 		TransformComponent transform = transformComponents.get(entity);
 		RigidbodyComponent rigidbody = rigidbodyComponents.get(entity);
@@ -107,8 +104,7 @@ public class PlayerSystem extends IteratingSystem implements PhysicsSystemListen
 				}
 				
 				float deltaAngle = input.angle(player.velocity);
-				float forcePower = GameUtils.smoothstep(90, 180, Math.abs(deltaAngle));
-				forcePower = 1.0f - Math.abs(deltaAngle) / 180.0f;
+				float forcePower = 1.0f - Math.abs(deltaAngle) / 180.0f;
 				forcePower = 1.0f - forcePower * forcePower;
 				forcePower *= GameUtils.smoothstep(0, player.speed, speed);
 				forcePower *= GameUtils.smoothstep(player.speed + player.impulse, player.speed, speed);
@@ -144,20 +140,54 @@ public class PlayerSystem extends IteratingSystem implements PhysicsSystemListen
 		if (transform.position.y * player.oldHeight < 0)
 			water.splash(transform.position.x, player.velocity.y / (player.speed + player.impulse), true);
 		player.oldHeight = transform.position.y;
-	}
-
-	protected boolean shouldAddEntity(Engine engine, Entity entity) 
-	{
-		return engine.hasComponent(entity, TransformComponent.class) &&
-			   engine.hasComponent(entity, RigidbodyComponent.class) &&
-			   engine.hasComponent(entity, PlayerComponent.class);
+		
+		updateTail(deltaTime, player, transform);
+		updateStaminaBar(player, transform);
 	}
 	
+	private void updateTail(float deltaTime, PlayerComponent player, TransformComponent transform)
+	{
+		if (player.tailEntity != null)
+		{
+			TransformComponent tailTransform = transformComponents.get(player.tailEntity);
+			Vector2 offset = new Vector2(MathUtils.cosDeg(transform.rotation), MathUtils.sinDeg(transform.rotation)).rotate90(1);
+			tailTransform.position = transform.position.cpy().sub(offset.scl(4.0f / 24.0f));
+			tailTransform.rotation = MathUtils.lerpAngleDeg(tailTransform.rotation, transform.rotation, GameUtils.damp(0.01f, deltaTime));
+		}
+	}
+	
+	private void updateStaminaBar(PlayerComponent player, TransformComponent transform)
+	{
+		if (player.staminaBarEntity == null || player.staminaBarTransform == null ||
+			player.staminaBorderEntity == null || player.staminaBorderTransform == null)
+			return;
+		
+		if (engine.isActive(player.staminaBorderEntity))
+		{
+			player.staminaBarTransform.position = transform.position.cpy().add(0.0f, 1.0f).sub(player.staminaBorderTransform.scale.x * 0.5f, 0);
+			player.staminaBarTransform.scale.x = player.stamina;
+			player.staminaBorderTransform.position = player.staminaBarTransform.position.cpy();
+		}
+		
+		if (player.stamina < 1.0f && !engine.isActive(player.staminaBorderEntity))
+		{
+			engine.setActive(player.staminaBarEntity, true);
+			engine.setActive(player.staminaBorderEntity, true);
+		}
+		else if (player.stamina >= 1.0f && engine.isActive(player.staminaBorderEntity))
+		{
+			engine.setActive(player.staminaBarEntity, false);
+			engine.setActive(player.staminaBorderEntity, false);
+		}
+	}
+	
+	@Override
 	public void beginSensor(Entity selfEntity, Collider selfCollider, Entity otherEntity, Collider otherCollider)
 	{
 		
 	}
 
+	@Override
 	public void beginContact(Entity selfEntity, Collider selfCollider, Entity otherEntity, Collider otherCollider, Vector2 normal) 
 	{
 		if (engine.hasComponent(selfEntity, PlayerComponent.class))
@@ -169,8 +199,12 @@ public class PlayerSystem extends IteratingSystem implements PhysicsSystemListen
 			{
 				if (normal.y > MathUtils.cosDeg(45.0f))
 				{
-					player.velocity.y = (float)Math.sqrt((17.0f / 16.0f) * -2.0f * RigidbodyComponent.gravity);
-					if (Math.abs(player.velocity.x) < 0.1f)
+					final float force = (float)Math.sqrt((17.0f / 16.0f) * -2.0f * RigidbodyComponent.gravity);
+					if (-player.velocity.y * 0.5f < force)
+						player.velocity.y = force;
+					else
+						player.velocity.y = -player.velocity.y * 0.5f;
+					if (Math.abs(player.velocity.x) < 1.0f)
 						player.velocity.x = MathUtils.randomSign();
 				}
 				else

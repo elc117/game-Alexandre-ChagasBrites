@@ -1,24 +1,16 @@
 package com.alegz.mermaid.states;
 
+import com.alegz.ecs.Engine;
+import com.alegz.ecs.Entity;
 import com.alegz.mermaid.Assets;
+import com.alegz.mermaid.GameBuilder;
 import com.alegz.mermaid.MermaidGame;
 import com.alegz.mermaid.Tilemap;
 import com.alegz.mermaid.Water;
-import com.alegz.mermaid.components.CameraComponent;
-import com.alegz.mermaid.components.ImageRendererComponent;
-import com.alegz.mermaid.components.MeshRendererComponent;
 import com.alegz.mermaid.components.PlayerComponent;
-import com.alegz.mermaid.components.RendererComponent;
-import com.alegz.mermaid.components.RigidbodyComponent;
-import com.alegz.mermaid.components.SpriteRendererComponent;
-import com.alegz.mermaid.components.TextRendererComponent;
 import com.alegz.mermaid.components.TilemapRendererComponent;
 import com.alegz.mermaid.components.TransformComponent;
-import com.alegz.mermaid.components.UITransformComponent;
-import com.alegz.mermaid.ecs.Engine;
-import com.alegz.mermaid.ecs.Entity;
 import com.alegz.mermaid.rendering.PlatformerCamera;
-import com.alegz.mermaid.rendering.material.Material;
 import com.alegz.mermaid.systems.CameraSystem;
 import com.alegz.mermaid.systems.PhysicsSystem;
 import com.alegz.mermaid.systems.PlayerSystem;
@@ -28,7 +20,6 @@ import com.badlogic.gdx.Input.Buttons;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
 
 public class LevelEditorState implements GameState
 {
@@ -38,6 +29,7 @@ public class LevelEditorState implements GameState
 	private Tilemap tilemap;
 	private String path;
 	
+	private PlatformerCamera platformerCamera;
 	private Water water;
 	
 	private Engine engine;
@@ -53,164 +45,41 @@ public class LevelEditorState implements GameState
 		this.path = path;
 	}
 	
+	@Override
 	public void create() 
 	{
+		platformerCamera = new PlatformerCamera();
+		platformerCamera.backgroundColor = new Color(204 / 255.0f, 232 / 255.0f, 255 / 255.0f, 1);
+		
 		water = new Water(assets.getMaterial(Assets.MATERIAL_WATER), tilemap.getWidth());
 		
-		engine = new Engine();
-		engine.addComponentStorage(TransformComponent.class);
-		engine.addComponentStorage(RendererComponent.class);
-		engine.addComponentStorage(SpriteRendererComponent.class);
-		engine.addComponentStorage(MeshRendererComponent.class);
-		engine.addComponentStorage(TilemapRendererComponent.class);
-		engine.addComponentStorage(UITransformComponent.class);
-		engine.addComponentStorage(ImageRendererComponent.class);
-		engine.addComponentStorage(TextRendererComponent.class);
-		engine.addComponentStorage(RigidbodyComponent.class);
-		engine.addComponentStorage(PlayerComponent.class);
-		engine.addComponentStorage(CameraComponent.class);
+		engine = new Engine(1024);
 		
-		PhysicsSystem physicsSystem = new PhysicsSystem();
-		RenderingSystem renderingSystem = new RenderingSystem(assets.getFont());
-		renderingSystem.getCamera().backgroundColor = new Color(204 / 255.0f, 232 / 255.0f, 255 / 255.0f, 1);
+		PlayerSystem playerSystem = new PlayerSystem(engine, water, platformerCamera);
+		PhysicsSystem physicsSystem = new PhysicsSystem(engine);
+		CameraSystem cameraSystem = new CameraSystem(engine);
+		RenderingSystem renderingSystem = new RenderingSystem(engine, platformerCamera, assets.getFont());
 		
-		engine.addSystem(new PlayerSystem(water));
+		engine.addSystem(playerSystem);
 		engine.addSystem(physicsSystem);
-		engine.addSystem(new CameraSystem());
+		engine.addSystem(cameraSystem);
 		engine.addSystem(renderingSystem);
 		//engine.addSystem(new PhysicsDebugSystem(physicsSystem.getWorld(), renderingSystem.getCamera()));
 		
-		Material backgroundMaterial = assets.getMaterial(Assets.MATERIAL_BACKGROUND);
-		backgroundMaterial.setColor("u_topColor", renderingSystem.getCamera().backgroundColor);
-		backgroundMaterial.setColor("u_bottomColor", new Color(76 / 255.0f, 106 / 255.0f, 200 / 255.0f, 1));
-		backgroundMaterial.setFloat("u_nearPlane", renderingSystem.getCamera().nearPlane);
-		backgroundMaterial.setFloat("u_farPlane", renderingSystem.getCamera().farPlane);
+		GameBuilder.createBackground(engine, assets, platformerCamera);
+		GameBuilder.createTilemap(engine, assets, tilemap);
 		
-		//background
-		for (int i = 0; i < 4; i++)
-		{
-			for (int j = -1; j <= 1; j++)
-			{
-				float depth = 4.0f - i;
-				float scale = 32.0f * (1.0f + depth);
-				
-				TransformComponent transform = new TransformComponent();
-				transform.scale.scl(scale);
-				transform.position = new Vector2(j * transform.scale.x, -16.0f);
-				
-				SpriteRendererComponent spriteRenderer = new SpriteRendererComponent();
-				switch (i)
-				{
-				case 0:
-					spriteRenderer.sprite = assets.getSprite(Assets.SPRITE_BACKGROUND0);
-					break;
-				case 1:
-					spriteRenderer.sprite = assets.getSprite(Assets.SPRITE_BACKGROUND1);
-					break;
-				case 2:
-					spriteRenderer.sprite = assets.getSprite(Assets.SPRITE_BACKGROUND2);
-					break;
-				case 3:
-					spriteRenderer.sprite = assets.getSprite(Assets.SPRITE_BACKGROUND3);
-					break;
-				}
-				spriteRenderer.depth = depth;
-				spriteRenderer.material = backgroundMaterial;
-				
-				Entity entity = new Entity();
-				engine.addComponent(entity, transform);
-				engine.addComponent(entity, spriteRenderer);
-				engine.addEntity(entity);
-			}
-		}
+		Entity playerEntity = GameBuilder.createPlayer(engine, assets);
+		TransformComponent playerTransform = engine.getComponent(playerEntity, TransformComponent.class);
+		PlayerComponent player = engine.getComponent(playerEntity, PlayerComponent.class);
 		
-		//tilemap
-		{	
-			Entity entity = new Entity();
-			TransformComponent transform = new TransformComponent();
-			
-			TilemapRendererComponent tilemapRenderer = new TilemapRendererComponent(tilemap,
-				assets.getSpriteAtlas(Assets.SPRITE_ATLAS_TILE));
-			tilemapRenderer.material = assets.getMaterial(Assets.MATERIAL_SPRITE);
-			
-			engine.addComponent(entity, transform);
-			engine.addComponent(entity, tilemapRenderer);
-			engine.addEntity(entity);
-			
-			this.tilemapRenderer = tilemapRenderer;
-		}
+		GameBuilder.createCamera(engine, assets, tilemap, platformerCamera, playerTransform, player);
+		GameBuilder.createWater(engine, assets, tilemap);
 		
-		TransformComponent playerTransform;
-		PlayerComponent player;
-		
-		//player
-		{
-			Entity entity = new Entity();
-			TransformComponent transform = new TransformComponent();
-			transform.scale.x = transform.scale.y = 1.5f;
-			
-			SpriteRendererComponent spriteRenderer = new SpriteRendererComponent();
-			spriteRenderer.sprite = assets.getSprite(Assets.SPRITE_PLAYER);
-			spriteRenderer.pivot.y = 0.25f;
-			spriteRenderer.material = assets.getMaterial(Assets.MATERIAL_SPRITE);
-			
-			RigidbodyComponent rigidbody = new RigidbodyComponent();
-			rigidbody.create(physicsSystem.getWorld(), entity, transform, BodyType.DynamicBody);
-			rigidbody.getBody().setFixedRotation(true);
-			
-			player = new PlayerComponent();
-			
-			CameraComponent camera = new CameraComponent(renderingSystem.getCamera());
-			camera.target = transform;
-			camera.minBounds = tilemap.getWorldPos(0, tilemap.getHeight());
-			camera.maxBounds = tilemap.getWorldPos(tilemap.getWidth(), 0);
-			
-			engine.addComponent(entity, transform);
-			engine.addComponent(entity, spriteRenderer);
-			engine.addComponent(entity, rigidbody);
-			engine.addComponent(entity, player);
-			//engine.addComponent(entity, camera);
-			engine.addEntity(entity);
-			
-			playerTransform = transform;
-		}
-		
-		//camera
-		{
-			Entity entity = new Entity();
-			TransformComponent transform = new TransformComponent();
-			
-			CameraComponent camera = new CameraComponent(renderingSystem.getCamera());
-			camera.target = playerTransform;
-			camera.targetPlayer = player;
-			camera.minBounds = tilemap.getWorldPos(0, tilemap.getHeight());
-			camera.maxBounds = tilemap.getWorldPos(tilemap.getWidth(), 0);
-			
-			engine.addComponent(entity, transform);
-			engine.addComponent(entity, camera);
-			engine.addEntity(entity);
-		}
-		
-		//water
-		{
-			TransformComponent transform = new TransformComponent();
-			transform.scale = new Vector2(tilemap.getWidth(), -tilemap.getWorldPos(0, tilemap.getHeight()).y);
-			transform.position = new Vector2(0, -transform.scale.y * 0.5f + 0.5f);
-			transform.scale.y += 1.0f;
-			
-			SpriteRendererComponent spriteRenderer = new SpriteRendererComponent();
-			spriteRenderer.material = assets.getMaterial(Assets.MATERIAL_WATER);
-			
-			Entity entity = new Entity();
-			engine.addComponent(entity, transform);
-			engine.addComponent(entity, spriteRenderer);
-			engine.addEntity(entity);
-		}
-		
-		engine.start();
 		time = 0;
 	}
 
+	@Override
 	public void update() 
 	{
 		if (Gdx.input.isKeyJustPressed(Keys.ESCAPE))
@@ -221,9 +90,8 @@ public class LevelEditorState implements GameState
 		assets.getMaterial(Assets.MATERIAL_SPRITE).setFloat("u_time", time);
 		assets.getMaterial(Assets.MATERIAL_PLANT).setFloat("u_time", time);
 		
-		PlatformerCamera camera = engine.getSystem(RenderingSystem.class).getCamera();
 		Vector2 mousePos = new Vector2(Gdx.input.getX(), Gdx.input.getY());
-		mousePos = camera.getScreenToWorldPosition(mousePos.x, mousePos.y);
+		mousePos = platformerCamera.getScreenToWorldPosition(mousePos.x, mousePos.y);
 		
 		if (Gdx.input.isButtonPressed(Buttons.LEFT))
 			tilemap.setTile(mousePos, (byte)1);
@@ -238,21 +106,25 @@ public class LevelEditorState implements GameState
 		time += deltaTime;
 	}
 
+	@Override
 	public void resize(int width, int height) 
 	{
-		
+		engine.resize(width, height);
 	}
 	
+	@Override
 	public void pause()
 	{
 		
 	}
 	
+	@Override
 	public void resume()
 	{
 		
 	}
 
+	@Override
 	public void dispose() 
 	{
 		engine.dispose();

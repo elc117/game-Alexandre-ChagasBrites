@@ -1,13 +1,13 @@
 package com.alegz.mermaid.components;
 
-import com.alegz.mermaid.ecs.Component;
+import com.alegz.ecs.Entity;
 import com.alegz.mermaid.physics.CircleCollider;
-import com.alegz.mermaid.physics.Collider;
 import com.badlogic.gdx.math.Vector2;
 
-public class PlayerComponent implements Component
+public class PlayerComponent extends AnimalComponent
 {
 	public Vector2 velocity = new Vector2();
+	
 	public float speed = 5.0f;
 	public float impulse = 5.0f;
 	public float maxSpeed = 15.0f;
@@ -15,13 +15,16 @@ public class PlayerComponent implements Component
 	public float drag = 5.0f;
 	public float impulseDrag = 0.25f;
 	public float oldHeight = 0.0f;
+	
 	public float stamina = 1.0f;
 	public float staminaRegen = 2.0f;
+	
 	public CircleCollider trashSensor = null;
 	public float trashRadius = 1.0f;
 	
-	public Class<? extends Component> getComponentClass()
-	{
-		return PlayerComponent.class;
-	}
+	public Entity tailEntity = null;
+	public Entity staminaBarEntity = null;
+	public TransformComponent staminaBarTransform = null;
+	public Entity staminaBorderEntity = null;
+	public TransformComponent staminaBorderTransform = null;
 }

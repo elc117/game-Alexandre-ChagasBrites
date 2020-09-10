@@ -16,6 +16,7 @@ public class BoxCollider extends Collider
 		this.offset = offset;
 	}
 	
+	@Override
 	protected Shape[] getShapes()
 	{
 		PolygonShape shape = new PolygonShape();

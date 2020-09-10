@@ -1,30 +1,24 @@
 package com.alegz.mermaid.states;
 
+import com.alegz.ecs.Engine;
+import com.alegz.ecs.Entity;
 import com.alegz.mermaid.Assets;
+import com.alegz.mermaid.GameBuilder;
 import com.alegz.mermaid.GameProgress;
 import com.alegz.mermaid.MermaidGame;
-import com.alegz.mermaid.SoundManager;
-import com.alegz.mermaid.Tilemap;
 import com.alegz.mermaid.Water;
-import com.alegz.mermaid.components.ButtonComponent;
 import com.alegz.mermaid.components.ImageRendererComponent;
-import com.alegz.mermaid.components.MeshRendererComponent;
-import com.alegz.mermaid.components.RendererComponent;
 import com.alegz.mermaid.components.SpriteRendererComponent;
 import com.alegz.mermaid.components.TextRendererComponent;
-import com.alegz.mermaid.components.TilemapRendererComponent;
 import com.alegz.mermaid.components.TransformComponent;
 import com.alegz.mermaid.components.UITransformComponent;
-import com.alegz.mermaid.ecs.Engine;
-import com.alegz.mermaid.ecs.Entity;
 import com.alegz.mermaid.rendering.PlatformerCamera;
-import com.alegz.mermaid.systems.ButtonSystem;
 import com.alegz.mermaid.systems.RenderingSystem;
+import com.alegz.mermaid.systems.UISystem;
+import com.alegz.mermaid.utils.GameUtils;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input.Buttons;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
-import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 
 public class MenuState implements GameState
@@ -32,6 +26,7 @@ public class MenuState implements GameState
 	private MermaidGame game;
 	private Assets assets;
 	
+	private PlatformerCamera platformerCamera;
 	private Water water;
 	private Engine engine;
 	
@@ -43,26 +38,23 @@ public class MenuState implements GameState
 		this.assets = assets;
 	}
 	
+	@Override
 	public void create() 
 	{
+		platformerCamera = new PlatformerCamera();
+		platformerCamera.setPixelPerfectMatrix(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), 12);
+		
 		int waterScale = 128;
 		water = new Water(assets.getMaterial(Assets.MATERIAL_WATER), waterScale);
 		
-		engine = new Engine();
-		engine.addComponentStorage(TransformComponent.class);
-		engine.addComponentStorage(RendererComponent.class);
-		engine.addComponentStorage(SpriteRendererComponent.class);
-		engine.addComponentStorage(MeshRendererComponent.class);
-		engine.addComponentStorage(TilemapRendererComponent.class);
-		engine.addComponentStorage(UITransformComponent.class);
-		engine.addComponentStorage(ImageRendererComponent.class);
-		engine.addComponentStorage(TextRendererComponent.class);
+		engine = new Engine(1024);
 		
-		RenderingSystem renderingSystem = new RenderingSystem(assets.getFont());
-		renderingSystem.getCamera().backgroundColor = new Color(204 / 255.0f, 232 / 255.0f, 255 / 255.0f, 1);
+		UISystem uiSystem = new UISystem(engine, platformerCamera);
+		RenderingSystem renderingSystem = new RenderingSystem(engine, platformerCamera, assets.getFont());
+		platformerCamera.backgroundColor = new Color(204 / 255.0f, 232 / 255.0f, 255 / 255.0f, 1);
 		
+		engine.addSystem(uiSystem);
 		engine.addSystem(renderingSystem);
-		engine.addSystem(new ButtonSystem(renderingSystem.getCamera()));
 		
 		//water
 		{
@@ -74,15 +66,15 @@ public class MenuState implements GameState
 			SpriteRendererComponent spriteRenderer = new SpriteRendererComponent();
 			spriteRenderer.material = assets.getMaterial(Assets.MATERIAL_WATER);
 			
-			Entity entity = new Entity();
+			Entity entity = engine.createEntity();
 			engine.addComponent(entity, transform);
 			engine.addComponent(entity, spriteRenderer);
-			engine.addEntity(entity);
+			engine.setActive(entity, true);
 		}
 		
 		//ui
 		{
-			Entity entity = new Entity();
+			Entity entity = engine.createEntity();
 			UITransformComponent transform = new UITransformComponent();
 			
 			TextRendererComponent textRenderer = new TextRendererComponent();
@@ -94,134 +86,31 @@ public class MenuState implements GameState
 			
 			engine.addComponent(entity, transform);
 			engine.addComponent(entity, textRenderer);
-			engine.addEntity(entity);
+			engine.setActive(entity, true);
 		}
 		
 		//ui
-		{
-			Entity entity = new Entity();
-			UITransformComponent transform = new UITransformComponent();
-			transform.position.x = 0;
-			transform.position.y = -8;
-			
-			class ButtonAction implements ButtonComponent.Action
-			{
-				public void onClick() 
-				{
-					game.setState(new PlayState(game, assets, assets.getTilemap(Assets.TILEMAP_LEVEL0)));
-				}
-			}
-			
-			TextureAtlas spriteAtlas = assets.getSpriteAtlas(Assets.SPRITE_ATLAS_UI);
-			ButtonComponent button = new ButtonComponent();
-			button.defaultSprite = spriteAtlas.findRegion("buttonDefault");
-			button.highlightSprite = spriteAtlas.findRegion("buttonHighlight");
-			button.pressedSprite = spriteAtlas.findRegion("buttonPressed");
-			button.sprite = button.defaultSprite;
-			button.material = assets.getMaterial(Assets.MATERIAL_UI);
-			button.action = new ButtonAction();
-			
-			transform.scale.x = button.sprite.getRegionWidth();
-			transform.scale.y = button.sprite.getRegionHeight();
-			
-			TextRendererComponent textRenderer = new TextRendererComponent();
-			textRenderer.text = "Nivel 1";
-			textRenderer.offset.x = -40;
-			textRenderer.offset.y = -4;
-			textRenderer.material = assets.getMaterial(Assets.MATERIAL_UI);
-			
-			engine.addComponent(entity, transform);
-			engine.addComponent(entity, button);
-			engine.addComponent(entity, textRenderer);
-			engine.addEntity(entity);
-		}
+		GameBuilder.createButton(engine, assets, GameBuilder.setLevelButton(game, assets, Assets.TILEMAP_LEVEL0), 
+				new Vector2(0, -8), "Nivel 1", new Vector2(-40, -4));
+		if (GameProgress.level0 > 0)
+			createCheckmark(new Vector2(48.0f, -8.0f));
 		
 		//ui
 		if (GameProgress.level1 > -1)
-		{
-			Entity entity = new Entity();
-			UITransformComponent transform = new UITransformComponent();
-			transform.position.x = 0;
-			transform.position.y = -28;
-			
-			class ButtonAction implements ButtonComponent.Action
-			{
-				public void onClick() 
-				{
-					game.setState(new PlayState(game, assets, assets.getTilemap(Assets.TILEMAP_LEVEL1)));
-				}
-			}
-			
-			TextureAtlas spriteAtlas = assets.getSpriteAtlas(Assets.SPRITE_ATLAS_UI);
-			ButtonComponent button = new ButtonComponent();
-			button.defaultSprite = spriteAtlas.findRegion("buttonDefault");
-			button.highlightSprite = spriteAtlas.findRegion("buttonHighlight");
-			button.pressedSprite = spriteAtlas.findRegion("buttonPressed");
-			button.sprite = button.defaultSprite;
-			button.material = assets.getMaterial(Assets.MATERIAL_UI);
-			button.action = new ButtonAction();
-			
-			transform.scale.x = button.sprite.getRegionWidth();
-			transform.scale.y = button.sprite.getRegionHeight();
-			
-			TextRendererComponent textRenderer = new TextRendererComponent();
-			textRenderer.text = "Nivel 2";
-			textRenderer.offset.x = -40;
-			textRenderer.offset.y = -4;
-			textRenderer.material = assets.getMaterial(Assets.MATERIAL_UI);
-			
-			engine.addComponent(entity, transform);
-			engine.addComponent(entity, button);
-			engine.addComponent(entity, textRenderer);
-			engine.addEntity(entity);
-		}
+			GameBuilder.createButton(engine, assets, GameBuilder.setLevelButton(game, assets, Assets.TILEMAP_LEVEL1), 
+				new Vector2(0, -28), "Nivel 2", new Vector2(-40, -4));
+		if (GameProgress.level1 > 0)
+			createCheckmark(new Vector2(48.0f, -28.0f));
 		
 		//ui
 		if (GameProgress.level2 > -1)
-		{
-			Entity entity = new Entity();
-			UITransformComponent transform = new UITransformComponent();
-			transform.position.x = 0;
-			transform.position.y = -48;
-			
-			class ButtonAction implements ButtonComponent.Action
-			{
-				public void onClick() 
-				{
-					game.setState(new PlayState(game, assets, assets.getTilemap(Assets.TILEMAP_LEVEL2)));
-				}
-			}
-			
-			TextureAtlas spriteAtlas = assets.getSpriteAtlas(Assets.SPRITE_ATLAS_UI);
-			ButtonComponent button = new ButtonComponent();
-			button.defaultSprite = spriteAtlas.findRegion("buttonDefault");
-			button.highlightSprite = spriteAtlas.findRegion("buttonHighlight");
-			button.pressedSprite = spriteAtlas.findRegion("buttonPressed");
-			button.sprite = button.defaultSprite;
-			button.material = assets.getMaterial(Assets.MATERIAL_UI);
-			button.action = new ButtonAction();
-			
-			transform.scale.x = button.sprite.getRegionWidth();
-			transform.scale.y = button.sprite.getRegionHeight();
-			
-			TextRendererComponent textRenderer = new TextRendererComponent();
-			textRenderer.text = "Nivel 3";
-			textRenderer.offset.x = -40;
-			textRenderer.offset.y = -4;
-			textRenderer.material = assets.getMaterial(Assets.MATERIAL_UI);
-			
-			engine.addComponent(entity, transform);
-			engine.addComponent(entity, button);
-			engine.addComponent(entity, textRenderer);
-			engine.addEntity(entity);
-		}
+			GameBuilder.createButton(engine, assets, GameBuilder.setLevelButton(game, assets, Assets.TILEMAP_LEVEL2), 
+				new Vector2(0, -48), "Nivel 3", new Vector2(-40, -4));
+		if (GameProgress.level2 > 0)
+			createCheckmark(new Vector2(48.0f, -48.0f));
 		
-		engine.start();
 		oldMousePos = new Vector2();
-	}
-
-	public void update() 
-	{
+		
 		float pollution = 3;
 		if (GameProgress.level0 > 0)
 			pollution--;
@@ -230,38 +119,66 @@ public class MenuState implements GameState
 		if (GameProgress.level2 > 0)
 			pollution--;
 		pollution /= 3;
+		pollution = GameUtils.easeOut(pollution);
 		assets.getMaterial(Assets.MATERIAL_WATER).setFloat("u_pollution", pollution);
+	}
+
+	private void createCheckmark(Vector2 position)
+	{
+		Entity entity = engine.createEntity();
+		UITransformComponent transform = new UITransformComponent();
+		transform.position = position;
 		
+		TextureAtlas spriteAtlas = assets.getSpriteAtlas(Assets.SPRITE_ATLAS_UI);
+		ImageRendererComponent imageRenderer = new ImageRendererComponent();
+		imageRenderer.sprite = spriteAtlas.findRegion("checkmark");
+		imageRenderer.material = assets.getMaterial(Assets.MATERIAL_UI);
+		
+		transform.scale.x = imageRenderer.sprite.getRegionWidth();
+		transform.scale.y = imageRenderer.sprite.getRegionHeight();
+		
+		engine.addComponent(entity, transform);
+		engine.addComponent(entity, imageRenderer);
+		engine.setActive(entity, true);
+	}
+	
+	@Override
+	public void update() 
+	{
 		float deltaTime = Math.min(Gdx.graphics.getDeltaTime(), 0.1f);
 		water.update(deltaTime);
 		engine.update(deltaTime);
 		
-		PlatformerCamera camera = engine.getSystem(RenderingSystem.class).getCamera();
-		Vector2 mousePos = camera.getScreenToWorldPosition(Gdx.input.getX(), Gdx.input.getY());
+		Vector2 mousePos = platformerCamera.getScreenToWorldPosition(Gdx.input.getX(), Gdx.input.getY());
 		if (mousePos.y * oldMousePos.y < 0)
 		{
-			Vector2 velocity = camera.getScreenToWorldPosition(Gdx.input.getX(), Gdx.input.getY() + Gdx.input.getDeltaY());
+			Vector2 velocity = platformerCamera.getScreenToWorldPosition(Gdx.input.getX(), Gdx.input.getY() + Gdx.input.getDeltaY());
 			velocity.sub(oldMousePos);
 			water.splash(mousePos.x, velocity.y, true);
 		}
 		oldMousePos = mousePos;
 	}
 
+	@Override
 	public void resize(int width, int height) 
 	{
-		
+		platformerCamera.setPixelPerfectMatrix(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), 12);
+		engine.resize(width, height);
 	}
 	
+	@Override
 	public void pause()
 	{
 		
 	}
 	
+	@Override
 	public void resume()
 	{
 		
 	}
 
+	@Override
 	public void dispose() 
 	{
 		engine.dispose();

@@ -1,7 +1,11 @@
 package com.alegz.mermaid.systems;
 
-import java.util.ArrayList;
-
+import com.alegz.ecs.ComponentMap;
+import com.alegz.ecs.Engine;
+import com.alegz.ecs.Entity;
+import com.alegz.ecs.EntityList;
+import com.alegz.ecs.EntityListComparator;
+import com.alegz.ecs.EntitySystem;
 import com.alegz.mermaid.PixelFont;
 import com.alegz.mermaid.components.ImageRendererComponent;
 import com.alegz.mermaid.components.MeshRendererComponent;
@@ -13,58 +17,51 @@ import com.alegz.mermaid.components.TransformComponent;
 import com.alegz.mermaid.components.UITransformComponent;
 import com.alegz.mermaid.rendering.PlatformerCamera;
 import com.alegz.mermaid.rendering.Renderer;
-import com.alegz.mermaid.ecs.Engine;
-import com.alegz.mermaid.ecs.Entity;
-import com.alegz.mermaid.ecs.EntitySystem;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.utils.ObjectMap;
 
-public class RenderingSystem extends EntitySystem
+public class RenderingSystem extends EntitySystem implements EntityListComparator
 {
 	private Renderer renderer;
 	private final static int spriteCount = 1024;
 	private PlatformerCamera camera;
 	private PixelFont font;
 	
-	private ArrayList<Entity> entities;
-	private ArrayList<Entity> uiEntities;
+	private EntityList entities;
+	private EntityList uiEntities;
 	
-	private ObjectMap<Entity, TransformComponent> transformComponents;
-	private ObjectMap<Entity, RendererComponent> rendererComponents;
-	private ObjectMap<Entity, SpriteRendererComponent> spriteRendererComponents;
-	private ObjectMap<Entity, MeshRendererComponent> meshRendererComponents;
-	private ObjectMap<Entity, UITransformComponent> uiTransformComponents;
-	private ObjectMap<Entity, TilemapRendererComponent> tilemapRendererComponents;
-	private ObjectMap<Entity, ImageRendererComponent> imageRendererComponents;
-	private ObjectMap<Entity, TextRendererComponent> textRendererComponents;
+	private ComponentMap<TransformComponent> transformComponents;
+	private ComponentMap<RendererComponent> rendererComponents;
+	private ComponentMap<SpriteRendererComponent> spriteRendererComponents;
+	private ComponentMap<MeshRendererComponent> meshRendererComponents;
+	private ComponentMap<TilemapRendererComponent> tilemapRendererComponents;
+	private ComponentMap<UITransformComponent> uiTransformComponents;
+	private ComponentMap<ImageRendererComponent> imageRendererComponents;
+	private ComponentMap<TextRendererComponent> textRendererComponents;
 	
-	public RenderingSystem(PixelFont font)
+	public RenderingSystem(Engine engine, PlatformerCamera camera, PixelFont font)
 	{
+		super(engine);
 		renderer = new Renderer(spriteCount);
-		camera = new PlatformerCamera();
+		this.camera = camera;
 		this.font = font;
 		
-		entities = new ArrayList<>();
-		uiEntities = new ArrayList<>();
+		entities = engine.createOrderedEntityList(this).has(TransformComponent.class).one(SpriteRendererComponent.class, TilemapRendererComponent.class);
+		uiEntities = engine.createEntityList().has(UITransformComponent.class).one(ImageRendererComponent.class, TextRendererComponent.class);
+		
+		transformComponents = engine.getComponentMap(TransformComponent.class);
+		rendererComponents = engine.getComponentMap(RendererComponent.class);
+		spriteRendererComponents = engine.getComponentMap(SpriteRendererComponent.class);
+		meshRendererComponents = engine.getComponentMap(MeshRendererComponent.class);
+		tilemapRendererComponents = engine.getComponentMap(TilemapRendererComponent.class);
+		uiTransformComponents = engine.getComponentMap(UITransformComponent.class);
+		imageRendererComponents = engine.getComponentMap(ImageRendererComponent.class);
+		textRendererComponents = engine.getComponentMap(TextRendererComponent.class);
 	}
 	
-	public void start(Engine engine) 
-	{
-		transformComponents = engine.getComponentStorage(TransformComponent.class);
-		rendererComponents = engine.getComponentStorage(RendererComponent.class);
-		spriteRendererComponents = engine.getComponentStorage(SpriteRendererComponent.class);
-		meshRendererComponents = engine.getComponentStorage(MeshRendererComponent.class);
-		tilemapRendererComponents = engine.getComponentStorage(TilemapRendererComponent.class);
-		uiTransformComponents = engine.getComponentStorage(UITransformComponent.class);
-		imageRendererComponents = engine.getComponentStorage(ImageRendererComponent.class);
-		textRendererComponents = engine.getComponentStorage(TextRendererComponent.class);
-	}
-	
+	@Override
 	public void update(float deltaTime)
 	{
-		camera.setPixelPerfectMatrix(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), 12);
-		
 		Gdx.gl20.glClearColor(camera.backgroundColor.r,
 							  camera.backgroundColor.g,
 							  camera.backgroundColor.b,
@@ -74,7 +71,7 @@ public class RenderingSystem extends EntitySystem
 		renderer.begin();
 		renderer.setProjectionMatrix(camera.getProjMatrix());
 		
-		for (Entity entity : entities) 
+		/*for (Entity entity : entities) 
 		{
 			TransformComponent transform = transformComponents.get(entity);
 			SpriteRendererComponent spriteRenderer = spriteRendererComponents.get(entity);
@@ -87,6 +84,12 @@ public class RenderingSystem extends EntitySystem
 				renderer.drawMesh(transform, meshRenderer);
 			else if (tilemapRenderer != null)
 				renderer.drawTilemap(transform, tilemapRenderer);
+		}*/
+		for (Entity entity : entities) 
+		{
+			TransformComponent transform = transformComponents.get(entity);
+			RendererComponent rendererComponent = rendererComponents.get(entity);
+			rendererComponent.draw(renderer, transform);
 		}
 		renderer.flush(true);
 		
@@ -98,7 +101,7 @@ public class RenderingSystem extends EntitySystem
 			TextRendererComponent textRenderer = textRendererComponents.get(entity);
 			
 			if (imageRenderer != null)
-				renderer.drawImage(camera, transform, imageRenderer);
+				imageRenderer.draw(renderer, transform);
 			if (textRenderer != null)
 				renderer.drawText(camera, font, transform, textRenderer);
 		}
@@ -106,45 +109,15 @@ public class RenderingSystem extends EntitySystem
 		renderer.end();
 	}
 	
-	public void entityAdded(Engine engine, Entity entity)
-	{
-		if (engine.hasComponent(entity, TransformComponent.class) &&
-			(engine.hasComponent(entity, SpriteRendererComponent.class) ||
-			 engine.hasComponent(entity, MeshRendererComponent.class) ||
-			 engine.hasComponent(entity, TilemapRendererComponent.class)))
-		{
-			int layer = engine.getComponent(entity, RendererComponent.class).layer;
-			int index = 0;
-			for (Entity otherEntity : entities)
-			{
-				int otherLayer = engine.getComponent(otherEntity, RendererComponent.class).layer;
-				if (layer >= otherLayer)
-					index++;
-			}
-			entities.add(index, entity);
-		}
-			
-		else if (engine.hasComponent(entity, UITransformComponent.class) &&
-				 (engine.hasComponent(entity, ImageRendererComponent.class) ||
-				  engine.hasComponent(entity, TextRendererComponent.class)))
-			uiEntities.add(entity);
-	}
-	
-	public void entityRemoved(Engine engine, Entity entity)
-	{
-		if (entities.contains(entity))
-			entities.remove(entity);
-		else if (uiEntities.contains(entity))
-			uiEntities.remove(entity);
-	}
-	
-	public PlatformerCamera getCamera()
-	{
-		return camera;
-	}
-	
+	@Override
 	public void dispose()
 	{
 		renderer.dispose();
+	}
+
+	@Override
+	public boolean compare(Entity a, Entity b) 
+	{
+		return rendererComponents.get(a).layer >= rendererComponents.get(b).layer;
 	}
 }

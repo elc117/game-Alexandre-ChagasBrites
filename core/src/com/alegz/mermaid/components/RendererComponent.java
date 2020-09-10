@@ -1,15 +1,14 @@
 package com.alegz.mermaid.components;
 
+import com.alegz.ecs.Component;
+import com.alegz.mermaid.rendering.Renderer;
 import com.alegz.mermaid.rendering.material.Material;
-import com.alegz.mermaid.ecs.Component;
 
-public abstract class RendererComponent implements Component
+public abstract class RendererComponent extends Component
 {
 	public Material material = null;
 	public int layer = 0;
 	
-	public Class<? extends Component> getComponentClass()
-	{
-		return RendererComponent.class;
-	}
+	public abstract void draw(Renderer renderer, TransformComponent transform);
+	public abstract void draw(Renderer renderer, UITransformComponent transform);
 }
