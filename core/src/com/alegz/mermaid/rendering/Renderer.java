@@ -59,6 +59,8 @@ public class Renderer
 	public void end()
 	{
 		flush(false);
+		if (activeShader != null)
+			activeShader.end();
 	}
 	
 	public void draw(TextureRegion sprite)
@@ -156,9 +158,12 @@ public class Renderer
 		if (activeShader != shader)
 		{
 			flush(true);
+			if (activeShader != null)
+				activeShader.end();
+			
 			activeShader = shader;
 			if (activeShader != null)
-				activeShader.bind();
+				activeShader.begin();
 		}
 	}
 	

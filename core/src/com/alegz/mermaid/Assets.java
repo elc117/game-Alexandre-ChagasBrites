@@ -9,7 +9,6 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
-import com.badlogic.gdx.graphics.Texture.TextureWrap;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
@@ -260,13 +259,13 @@ public class Assets
 	{
 		Texture texture = new Texture(Gdx.files.internal(path));
 		texture.setFilter(filter, filter);
-		texture.setWrap(TextureWrap.Repeat, TextureWrap.Repeat);
+		//texture.setWrap(TextureWrap.Repeat, TextureWrap.Repeat);
 		textures.put(path, texture);
 	}
 	
 	private void loadShader(String path, boolean blend)
 	{
-		ShaderProgram.pedantic = false;
+		//ShaderProgram.pedantic = false;
 		ShaderProgram shader = new ShaderProgram(
 			Gdx.files.internal(path + "Vert.glsl").readString(),
 			Gdx.files.internal(path + "Frag.glsl").readString());

@@ -15,9 +15,9 @@ public class Shader
 		this.blend = blend;
 	}
 	
-	public void bind()
+	public void begin()
 	{
-		program.bind();
+		program.begin();
 		if (blend)
 		{
 			Gdx.gl20.glEnable(GL20.GL_BLEND);
@@ -27,6 +27,11 @@ public class Shader
 		{
 			Gdx.gl20.glDisable(GL20.GL_BLEND);
 		}
+	}
+	
+	public void end()
+	{
+		program.end();
 	}
 	
 	public ShaderProgram getProgram()
